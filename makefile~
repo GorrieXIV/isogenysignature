@@ -36,7 +36,7 @@ ifeq "$(ARCH)" "ARM"
 endif
 
 cc=$(COMPILER)
-CFLAGS=-c $(OPT) $(ADDITIONAL_SETTINGS) -D $(ARCHITECTURE) -D __LINUX__ $(USE_GENERIC) #originally includes $(USE_ASM) 
+CFLAGS=-c $(OPT) $(ADDITIONAL_SETTINGS) -D $(ARCHITECTURE) -D __LINUX__ $(USE_ASM) $(USE_GENERIC)
 LDFLAGS=
 ifeq "$(GENERIC)" "TRUE"
     EXTRA_OBJECTS=fp_generic.o

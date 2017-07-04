@@ -571,37 +571,36 @@ void *sign_thread(void *TPS) {
 
 		//cycles1 = cpucycles();
 
-		tps->sig->Randoms[r] = (unsigned char*)calloc(1, tps->obytes);
-		tps->sig->Commitments1[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
-		tps->sig->Commitments2[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
-		tps->sig->psiS[r] = calloc(1, sizeof(point_proj));
+        tps->sig->Randoms[r] = (unsigned char*)calloc(1, tps->obytes);
+        tps->sig->Commitments1[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
+        tps->sig->Commitments2[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
+        tps->sig->psiS[r] = calloc(1, sizeof(point_proj));
 
-		// Pick random point R and compute E/<R>
-		f2elm_t A;
+        // Pick random point R and compute E/<R>
+        f2elm_t A;
 
-    unsigned char *TempPubKey;
-    TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
+        unsigned char *TempPubKey;
+        TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true);
-    if(Status != CRYPTO_SUCCESS) {
-    	printf("Random point generation failed");
-		}
+        Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true);
+        if(Status != CRYPTO_SUCCESS) {
+            printf("Random point generation failed");
+        }
         
-    to_fp2mont(((f2elm_t*)TempPubKey)[0], A);
-    fp2copy751(A, *(f2elm_t*)tps->sig->Commitments1[r]);
+        to_fp2mont(((f2elm_t*)TempPubKey)[0], A);
+        fp2copy751(A, *(f2elm_t*)tps->sig->Commitments1[r]);
 
-    ////////////////////////////
-    //TODO: compute using A instead
-    
-		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r]);
-    if(Status != CRYPTO_SUCCESS) {
-			printf("Random point generation failed"); 
-    }
+        ////////////////////////////
+        //TODO: compute using A instead
+        Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r]);
+        if(Status != CRYPTO_SUCCESS) {
+            printf("Random point generation failed"); 
+        }
 
-    //cycles2 = cpucycles();
-    //cycles = cycles2 - cycles1;
-    //printf("ZKP round %d ran in ............ %10lld cycles\n", r, cycles);
-    //totcycles += cycles;
+        //cycles2 = cpucycles();
+        //cycles = cycles2 - cycles1;
+        //printf("ZKP round %d ran in ............ %10lld cycles\n", r, cycles);
+        //totcycles += cycles;
 	}
 
 

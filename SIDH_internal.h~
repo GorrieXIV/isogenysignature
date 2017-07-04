@@ -233,10 +233,6 @@ extern unsigned int mp_add(digit_t* a, digit_t* b, digit_t* c, unsigned int nwor
 void mp_add751(const digit_t* a, const digit_t* b, digit_t* c);
 void mp_add751_asm(const digit_t* a, const digit_t* b, digit_t* c);
 
-// 2x751-bit multiprecision addition, c = a+b
-void mp_add751x2(const digit_t* a, const digit_t* b, digit_t* c);
-void mp_add751x2_asm(const digit_t* a, const digit_t* b, digit_t* c);
-
 // Multiprecision subtraction, c = a-b, where lng(a) = lng(b) = nwords. Returns the borrow bit 
 extern unsigned int mp_sub(digit_t* a, digit_t* b, digit_t* c, unsigned int nwords);
 

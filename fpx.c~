@@ -144,20 +144,6 @@ __inline void mp_add751(const digit_t* a, const digit_t* b, digit_t* c)
 #endif
 }
 
-__inline void mp_add751x2(const digit_t* a, const digit_t* b, digit_t* c)
-{ // 2x751-bit multiprecision addition, c = a+b.
-    
-#if (OS_TARGET == OS_WIN) || defined(GENERIC_IMPLEMENTATION)
-
-    mp_add(a, b, c, 2*NWORDS_FIELD);
-    
-#elif (OS_TARGET == OS_LINUX)                 
-    
-    mp_add751x2_asm(a, b, c);    
-
-#endif
-}
-
 
 void mp_shiftr1(digit_t* x, unsigned int nwords)
 { // Multiprecision right shift by one
