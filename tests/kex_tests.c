@@ -631,6 +631,10 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     // Run the ZKP rounds
     int r;
     pthread_t sign_threads[NUM_THREADS];
+
+		//sem_t invSem;
+		//potentially need a buffer defined here and passed through the threads
+
     CUR_ROUND = 0;
     if (pthread_mutex_init(&RLOCK, NULL)) {
     	printf("ERROR: mutex init failed\n");
