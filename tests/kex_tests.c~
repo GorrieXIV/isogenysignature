@@ -25,9 +25,9 @@
 // Benchmark and test parameters  
 #define BENCH_LOOPS       10      // Number of iterations per bench 
 #define TEST_LOOPS        10      // Number of iterations per test
-#define NUM_ROUNDS		 248
+#define NUM_ROUNDS		 1
 
-int NUM_THREADS = 1;
+int NUM_THREADS = 248;
 int CUR_ROUND = 0;
 pthread_mutex_t RLOCK;
 

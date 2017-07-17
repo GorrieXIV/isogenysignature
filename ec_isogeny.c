@@ -556,12 +556,15 @@ void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4)
     fp2mul751_mont(t0, t1, t2);                      // t2 = z1*z2*z3*z4
 
 		//need semaphor protection, loading t2 into a buffer and once enough have been accumulated call the batched inv algorithm
-    //fp2inv751_mont(t2);                              // t2 = 1/(z1*z2*z3*z4)
+    fp2inv751_mont(t2);                              // t2 = 1/(z1*z2*z3*z4)
+
+		/*
 		pthread_mutex_lock(&arrayLock);
-		invArray[cntr] = &t2;
+		//invArray[cntr] = &t2; //need to use fp2copy DUHH
+		fp2copy751(t2, invArray[cntr]);
 		tempCnt = cntr;
 		cntr++; 
-		pthread_mutext_unlock(&arrayLock);
+		pthread_mutex_unlock(&arrayLock);
 		if (cntr == 248) {
 			partial_batched_inv(invArray, invDest, 248);
 			sem_post(&sign_sem);
@@ -569,7 +572,7 @@ void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4)
 			sem_wait(&sign_sem);
 		}
 
-		//t2 = new inverted t2
+		//t2 = new inverted t2*/
 
     fp2mul751_mont(t0, t2, t0);                      // t0 = 1/(z3*z4) 
     fp2mul751_mont(t1, t2, t1);                      // t1 = 1/(z1*z2) 
