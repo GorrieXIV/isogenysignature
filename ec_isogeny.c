@@ -560,7 +560,6 @@ void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4)
 
 		/*
 		pthread_mutex_lock(&arrayLock);
-		//invArray[cntr] = &t2; //need to use fp2copy DUHH
 		fp2copy751(t2, invArray[cntr]);
 		tempCnt = cntr;
 		cntr++; 
