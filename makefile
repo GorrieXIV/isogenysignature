@@ -51,7 +51,7 @@ OBJECTS_KEX_TEST=kex_tests.o $(OBJECTS_TEST) $(OBJECTS)
 OBJECTS_ALL=$(OBJECTS) $(OBJECTS_KEX_TEST)
 
 kex_test: $(OBJECTS_KEX_TEST)
-	$(CC) -lpthread -o kex_test $(OBJECTS_KEX_TEST) $(ARM_SETTING)
+	$(CC) -pthread -o kex_test $(OBJECTS_KEX_TEST) $(ARM_SETTING)
 
 kex.o: kex.c SIDH_internal.h
 	$(CC) $(CFLAGS) kex.c
