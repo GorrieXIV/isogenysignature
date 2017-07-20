@@ -320,7 +320,7 @@ void clear_words(void* mem, digit_t nwords);
 // The private key is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total).  
 // The public key consists of 4 elements in GF(p751^2), i.e., 751 bytes in total.
 // CurveIsogeny must be set up in advance using SIDH_curve_initialize().
-CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom);
+CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom, int batchMode);
 
 // Bob's key-pair generation
 // It produces a private key pPrivateKeyB and computes the public key pPublicKeyB.

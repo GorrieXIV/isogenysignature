@@ -15,7 +15,7 @@ extern const unsigned int splits_Alice[MAX_Alice];
 extern const unsigned int splits_Bob[MAX_Bob];
 
 
-CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom)
+CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom, int batchMode)
 { // Alice's key-pair generation
   // It produces a private key pPrivateKeyA and computes the public key pPublicKeyA.
   // The private key is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total). 
@@ -101,7 +101,11 @@ CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPubli
     eval_4_isog(phiQ, coeff);
     eval_4_isog(phiD, coeff);
 
-    inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
+		if(!batchMode) {
+    	inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
+		} else {
+			inv_4_way_batch(C, phiP->Z, phiQ->Z, phiD->Z);
+		}
     fp2mul751_mont(A, C, A);
     fp2mul751_mont(phiP->X, phiP->Z, phiP->X);
     fp2mul751_mont(phiQ->X, phiQ->Z, phiQ->X);

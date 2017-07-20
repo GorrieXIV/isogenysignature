@@ -71,7 +71,7 @@ CRYPTO_STATUS cryptotest_kex(PCurveIsogenyStaticData CurveIsogenyData)
         goto cleanup;
     }
 
-    Status = KeyGeneration_A(PrivateKeyA, PublicKeyA, CurveIsogeny, true);                     // Get some value as Alice's secret key and compute Alice's public key
+    Status = KeyGeneration_A(PrivateKeyA, PublicKeyA, CurveIsogeny, true, 0);                     // Get some value as Alice's secret key and compute Alice's public key
     if (Status != CRYPTO_SUCCESS) {                                                  
         goto cleanup;
     }  
@@ -226,7 +226,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     for (n = 0; n < BENCH_LOOPS; n++)
     {
         cycles1 = cpucycles();
-        Status = KeyGeneration_A(PrivateKeyA, PublicKeyA, CurveIsogeny, true);                     
+        Status = KeyGeneration_A(PrivateKeyA, PublicKeyA, CurveIsogeny, true, 0);                     
         if (Status != CRYPTO_SUCCESS) {                                                  
             passed = false;
             break;
@@ -582,7 +582,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true);
+    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, 1);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
 		}
@@ -748,7 +748,7 @@ void *verify_thread(void *TPV) {
             unsigned char *TempPubKey;
             TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
             
-            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false);
+            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 1);
             if(Status != CRYPTO_SUCCESS) {
                 printf("Computing E -> E/<R> failed");
             }
@@ -891,16 +891,16 @@ cleanup:
 // Optional parameters: #threads, #rounds
 int main(int argc, char *argv[])
 {
-	NUM_THREADS = 1;
+	//NUM_THREADS = 1;
 
-	if (argc > 1) {
-		NUM_THREADS = atoi(argv[1]);
-	}
+	//if (argc > 1) {
+		//NUM_THREADS = atoi(argv[1]);
+	//}
 
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
 	//printf("\n");
-	//initSemaphore();
+	initSemaphore();
 
 
   CRYPTO_STATUS Status = CRYPTO_SUCCESS;
