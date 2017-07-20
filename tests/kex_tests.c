@@ -25,9 +25,9 @@
 // Benchmark and test parameters  
 #define BENCH_LOOPS       10      // Number of iterations per bench 
 #define TEST_LOOPS        10      // Number of iterations per test
-#define NUM_ROUNDS		 248
+#define NUM_ROUNDS		 1
 
-int NUM_THREADS = 1;
+int NUM_THREADS = 248;
 int CUR_ROUND = 0;
 pthread_mutex_t RLOCK;
 
@@ -608,7 +608,7 @@ void *sign_thread(void *TPS) {
 }
 
 
-CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned char *PrivateKey, unsigned char *PublicKey, struct Signature *sig) {
+CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned char *PrivateKey, unsigned char *PublicKey, struct Signature *sig) {		
     unsigned int pbytes = (CurveIsogenyData->pwordbits + 7)/8;      // Number of bytes in a field element 
     unsigned int n, obytes = (CurveIsogenyData->owordbits + 7)/8;   // Number of bytes in an element in [1, order]
     PCurveIsogenyStruct CurveIsogeny = {0};
@@ -626,7 +626,7 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     Status = SIDH_curve_initialize(CurveIsogeny, &random_bytes_test, CurveIsogenyData);
     if (Status != CRYPTO_SUCCESS) {
         //goto cleanup;
-    }
+    }	
 
     // Run the ZKP rounds
     int r;
@@ -891,18 +891,19 @@ cleanup:
 // Optional parameters: #threads, #rounds
 int main(int argc, char *argv[])
 {
-	NUM_THREADS = 1;
+	//NUM_THREADS = 1;
 
-	if (argc > 1) {
-		NUM_THREADS = atoi(argv[1]);
-	}
+	//if (argc > 1) {
+		//NUM_THREADS = atoi(argv[1]);
+	//}
 
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
+	//printf("\n");
+	//initSemaphore();
 
 
-
-    CRYPTO_STATUS Status = CRYPTO_SUCCESS;
+  CRYPTO_STATUS Status = CRYPTO_SUCCESS;
 
 
 /*
@@ -975,13 +976,13 @@ int main(int argc, char *argv[])
         kgcycles = cycles2 - cycles1;
 
         cycles1 = cpucycles();
-        Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
-        cycles2 = cpucycles();
-        scycles = cycles2 - cycles1;
+  			Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
+  			if (Status != CRYPTO_SUCCESS) {
+  				printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+  				return false;
+  			}
+  			cycles2 = cpucycles();
+  			scycles = cycles2 - cycles1;
 
         cycles1 = cpucycles();
         Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);

@@ -412,6 +412,9 @@ void eval_3_isog(point_proj_t P, point_proj_t Q);
 // 4-way simultaneous inversion
 void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4);
 
+// 4-way simultaneous inversion for batched processes
+void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4);
+
 // Computing the point D = (x(Q-P),z(Q-P))
 void distort_and_diff(felm_t xP, point_proj_t d, PCurveIsogenyStruct CurveIsogeny);
 
