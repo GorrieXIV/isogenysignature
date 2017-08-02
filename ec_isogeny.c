@@ -588,13 +588,15 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
 		tempCnt = cntr;
 		cntr++; 
 	
+		int i;
+
 		if (cntr == 248) {
 			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			partial_batched_inv(invArray, invDest, 248);
 			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			pthread_mutex_unlock(&arrayLock);			
 			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-			for (int i = 0; i < 247; i++) {
+			for (i = 0; i < 247; i++) {
 				sem_post(&sign_sem);			
 			}
 
