@@ -25,7 +25,7 @@
 // Benchmark and test parameters  
 #define BENCH_LOOPS       10      // Number of iterations per bench 
 #define TEST_LOOPS        10      // Number of iterations per test
-#define NUM_ROUNDS		 1
+#define NUM_ROUNDS		248
 
 int NUM_THREADS = 248;
 int CUR_ROUND = 0;
@@ -556,6 +556,7 @@ void *sign_thread(void *TPS) {
 		int stop=0;
 
 		pthread_mutex_lock(&RLOCK);
+		
 		if (CUR_ROUND >= NUM_ROUNDS) {
 			stop=1;
 		} else {
@@ -570,6 +571,7 @@ void *sign_thread(void *TPS) {
 
 
 		//cycles1 = cpucycles();
+		//printf("%s:%d r=%d\n", __FILE__, __LINE__, r);
 
 		tps->sig->Randoms[r] = (unsigned char*)calloc(1, tps->obytes);
 		tps->sig->Commitments1[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
@@ -582,6 +584,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
+		printf("%s:%d Signing Thread.. CUR_ROUND=%d\n", __FILE__, __LINE__, CUR_ROUND);
     Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, 1);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
@@ -748,7 +751,8 @@ void *verify_thread(void *TPV) {
             unsigned char *TempPubKey;
             TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
             
-            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 1);
+						//printf("%s:%d Verifying Thread.. CUR_ROUND =%d\n", __FILE__, __LINE__, CUR_ROUND);
+            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 0);
             if(Status != CRYPTO_SUCCESS) {
                 printf("Computing E -> E/<R> failed");
             }
@@ -829,6 +833,7 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
 
     int r;
 
+
     // Curve isogeny system initialization
     CurveIsogeny = SIDH_curve_allocate(CurveIsogenyData);
     if (CurveIsogeny == NULL) {
@@ -899,7 +904,7 @@ int main(int argc, char *argv[])
 
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
-	//printf("\n");
+	printf("\n");
 	initSemaphore();
 
 
@@ -964,6 +969,7 @@ int main(int argc, char *argv[])
         struct Signature sig;
 
 
+	printf("%s:%d\n", __FILE__, __LINE__);
 
 
         cycles1 = cpucycles();
@@ -975,6 +981,7 @@ int main(int argc, char *argv[])
         cycles2 = cpucycles();
         kgcycles = cycles2 - cycles1;
 
+	printf("%s:%d\n", __FILE__, __LINE__);
         cycles1 = cpucycles();
   			Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
   			if (Status != CRYPTO_SUCCESS) {
@@ -983,6 +990,9 @@ int main(int argc, char *argv[])
   			}
   			cycles2 = cpucycles();
   			scycles = cycles2 - cycles1;
+	printf("%s:%d\n", __FILE__, __LINE__);
+
+				initSemaphore();
 
         cycles1 = cpucycles();
         Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
@@ -992,6 +1002,7 @@ int main(int argc, char *argv[])
         }
         cycles2 = cpucycles();
         vcycles = cycles2 - cycles1;
+	printf("%s:%d\n", __FILE__, __LINE__);
 
         printf("KeyGen ............. %10lld cycles\n", kgcycles);
         printf("Signing ............ %10lld cycles\n", scycles);

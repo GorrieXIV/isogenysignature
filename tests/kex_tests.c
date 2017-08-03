@@ -556,7 +556,7 @@ void *sign_thread(void *TPS) {
 		int stop=0;
 
 		pthread_mutex_lock(&RLOCK);
-		printf("%s:%d CUR_ROUND=%d\n", __FILE__, __LINE__, CUR_ROUND);
+		
 		if (CUR_ROUND >= NUM_ROUNDS) {
 			stop=1;
 		} else {
@@ -571,7 +571,7 @@ void *sign_thread(void *TPS) {
 
 
 		//cycles1 = cpucycles();
-		printf("%s:%d r=%d\n", __FILE__, __LINE__, r);
+		//printf("%s:%d r=%d\n", __FILE__, __LINE__, r);
 
 		tps->sig->Randoms[r] = (unsigned char*)calloc(1, tps->obytes);
 		tps->sig->Commitments1[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
@@ -584,6 +584,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
+		//printf("%s:%d Signing Thread.. CUR_ROUND=%d\n", __FILE__, __LINE__, CUR_ROUND);
     Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, 1);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
@@ -750,7 +751,8 @@ void *verify_thread(void *TPV) {
             unsigned char *TempPubKey;
             TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
             
-            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 1);
+						//printf("%s:%d Verifying Thread.. CUR_ROUND =%d\n", __FILE__, __LINE__, CUR_ROUND);
+            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 0);
             if(Status != CRYPTO_SUCCESS) {
                 printf("Computing E -> E/<R> failed");
             }
@@ -989,6 +991,8 @@ int main(int argc, char *argv[])
   			cycles2 = cpucycles();
   			scycles = cycles2 - cycles1;
 	printf("%s:%d\n", __FILE__, __LINE__);
+
+				initSemaphore();
 
         cycles1 = cpucycles();
         Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);

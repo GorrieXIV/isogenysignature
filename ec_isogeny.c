@@ -581,37 +581,40 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
 	
 		//fp2inv751_mont(t2);
 
-		printf("%s:%d\n", __FILE__, __LINE__);
+		//printf("%s:%d\n", __FILE__, __LINE__);
 		pthread_mutex_lock(&arrayLock);
-		printf("%s:%d cntr=%d\n", __FILE__, __LINE__, cntr);
+		//printf("%s:%d cntr=%d\n", __FILE__, __LINE__, cntr);
 		fp2copy751(t2, invArray[cntr]);
 		tempCnt = cntr;
+		//printf("%s:%d Adding element %d to inversion buffer \n", __FILE__, __LINE__, tempCnt);
 		cntr++; 
 	
 		int i;
 
 		if (cntr == 248) {
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			partial_batched_inv(invArray, invDest, 248);
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			pthread_mutex_unlock(&arrayLock);			
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			for (i = 0; i < 247; i++) {
 				sem_post(&sign_sem);			
 			}
 
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		} else {
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			pthread_mutex_unlock(&arrayLock);
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 			sem_wait(&sign_sem);
-			printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		}
 
 
-		printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+		//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		fp2copy751(invDest[tempCnt], t2);
+
+		cntr = 0;
 
     fp2mul751_mont(t0, t2, t0);                      // t0 = 1/(z3*z4) 
     fp2mul751_mont(t1, t2, t1);                      // t1 = 1/(z1*z2) 
@@ -621,6 +624,8 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
     fp2mul751_mont(z1, t1, t2);                      // t2 = 1/z2
     fp2mul751_mont(z2, t1, z1);                      // z1 = 1/z1
     fp2copy751(t2, z2);                              // z2 = 1/z2
+
+		//printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
 }
 
 
