@@ -355,6 +355,8 @@ void swap_points(point_proj_t P, point_proj_t Q, digit_t option);
 // Computes the j-invariant of a Montgomery curve with projective constant.
 void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv);
 
+void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, int batchSize);
+
 // Simultaneous doubling and differential addition.
 void xDBLADD(point_proj_t P, point_proj_t Q, f2elm_t xPQ, f2elm_t A24);
 

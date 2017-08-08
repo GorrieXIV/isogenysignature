@@ -10,6 +10,8 @@
 *********************************************************************************************/ 
 
 #include "SIDH_internal.h"
+#include "tests/test_extras.h"
+//#include "tests/kex_tests.c"
 
 extern const unsigned int splits_Alice[MAX_Alice];
 extern const unsigned int splits_Bob[MAX_Bob];
@@ -232,7 +234,7 @@ CRYPTO_STATUS KeyGeneration_B(unsigned char* pPrivateKeyB, unsigned char* pPubli
 }
 
 
-CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen)
+CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, int batchMode)
 { // Alice's shared secret generation
   // It produces a shared secret key pSharedSecretA using her secret key pPrivateKeyA and Bob's public key pPublicKeyB
   // Inputs: Alice's pPrivateKeyA is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total). 
@@ -293,8 +295,14 @@ CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPub
         npts -= 1;
     }
     
-    get_4_isog(R, A, C, coeff); 
-    j_inv(A, C, jinv);
+    get_4_isog(R, A, C, coeff);
+
+		if (batchMode) {
+			j_inv_batch(A, C, jinv, batchSize);
+		} else {
+			j_inv(A, C, jinv);
+		}    
+
     from_fp2mont(jinv, (felm_t*)pSharedSecretA);      // Converting back to standard representation
 
 // Cleanup:
@@ -309,7 +317,7 @@ CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPub
 }
 
 
-CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint)
+CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint, int batchMode)
 { // Bob's shared secret generation
   // It produces a shared secret key pSharedSecretB using his secret key pPrivateKeyB and Alice's public key pPublicKeyA
   // Inputs: Bob's pPrivateKeyB is an integer in the range [1, oB-1], where oA = 3^239 (i.e., 379 bits in total). 
@@ -379,7 +387,13 @@ CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPub
     }
     
     get_3_isog(R, A, C);    
-    j_inv(A, C, jinv);
+    
+		if (batchMode) {
+			j_inv_batch(A, C, jinv, NUM_THREADS - batchSize);
+		} else {
+			j_inv(A, C, jinv);
+		}  
+
     from_fp2mont(jinv, (felm_t*)pSharedSecretB);      // Converting back to standard representation
 
 // Cleanup:

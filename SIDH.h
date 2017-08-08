@@ -343,7 +343,7 @@ CRYPTO_STATUS Validate_PKB(unsigned char* pPublicKeyB, bool* valid, PCurveIsogen
 //         Bob's pPublicKeyB consists of 4 elements in GF(p751^2), i.e., 751 bytes in total.
 // Output: a shared secret pSharedSecretA that consists of one element in GF(p751^2), i.e., 1502 bits in total. 
 // CurveIsogeny must be set up in advance using SIDH_curve_initialize().
-CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen);
+CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, int batchmode);
 
 // Bob's shared secret generation
 // It produces a shared secret key pSharedSecretB using his secret key pPrivateKeyB and Alice's public key pPublicKeyA
@@ -351,7 +351,7 @@ CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPub
 //         Alice's pPublicKeyA consists of 4 elements in GF(p751^2), i.e., 751 bytes in total.
 // Output: a shared secret pSharedSecretB that consists of one element in GF(p751^2), i.e., 1502 bits in total. 
 // CurveIsogeny must be set up in advance using SIDH_curve_initialize().
-CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint);
+CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint, int batchmode);
 
 /*********************** Scalar multiplication API using BigMont ***********************/ 
 

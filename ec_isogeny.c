@@ -13,11 +13,13 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
+#include "tests/test_extras.h"
+//#include "tests/kex_tests.c"
 
 sem_t sign_sem;
 pthread_mutex_t arrayLock;
-f2elm_t invArray [248];
-f2elm_t invDest [248];
+f2elm_t invArray [NUM_ROUNDS];  //NUM_ROUNDS = 248 (default thread count)
+f2elm_t invDest [NUM_ROUNDS];		//NUM_ROUNDS = 248 (default thread count)
 int cntr = 0;
 
 void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv)
@@ -26,7 +28,7 @@ void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv)
   // Output: j=256*(A^2-3*C^2)^3/(C^4*(A^2-4*C^2)), which is j-invariant of Montgomery curve B*y^2=x^3+(A/C)*x^2+x or (equivalently) j-invariant of B'*y^2=C*x^3+A*x^2+C*x.
     f2elm_t t0, t1;
     
-    fp2sqr751_mont(A, jinv);                           // jinv = A^2        
+    fp2sqr751_mont(A, jinv);                           // jinv = A^2 
     fp2sqr751_mont(C, t1);                             // t1 = C^2
     fp2add751(t1, t1, t0);                             // t0 = t1+t1
     fp2sub751(jinv, t0, t0);                           // t0 = jinv-t0
@@ -40,11 +42,51 @@ void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv)
     fp2mul751_mont(t0, t1, t0);                        // t0 = t0*t1
     fp2add751(t0, t0, t0);                             // t0 = t0+t0
     fp2add751(t0, t0, t0);                             // t0 = t0+t0
-
-		//need semaphor protection, loading jinv into a buffer and once enough have been accumulated call the batched inv algorithm
     fp2inv751_mont(jinv);                              // jinv = 1/jinv 
-
     fp2mul751_mont(jinv, t0, jinv);                    // jinv = t0*jinv
+}
+
+void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, int batchSize) {
+	f2elm_t t0, t1;
+	int tempCnt;
+    
+	fp2sqr751_mont(A, jinv);                           // jinv = A^2
+	fp2sqr751_mont(C, t1);                             // t1 = C^2
+	fp2add751(t1, t1, t0);                             // t0 = t1+t1
+	fp2sub751(jinv, t0, t0);                           // t0 = jinv-t0
+	fp2sub751(t0, t1, t0);                             // t0 = t0-t1
+	fp2sub751(t0, t1, jinv);                           // jinv = t0-t1
+	fp2sqr751_mont(t1, t1);                            // t1 = t1^2
+	fp2mul751_mont(jinv, t1, jinv);                    // jinv = jinv*t1
+	fp2add751(t0, t0, t0);                             // t0 = t0+t0
+	fp2add751(t0, t0, t0);                             // t0 = t0+t0
+	fp2sqr751_mont(t0, t1);                            // t1 = t0^2
+	fp2mul751_mont(t0, t1, t0);                        // t0 = t0*t1
+	fp2add751(t0, t0, t0);                             // t0 = t0+t0
+  fp2add751(t0, t0, t0);                             // t0 = t0+t0
+
+	//fp2inv751_mont(jinv);                              // jinv = 1/jinv 
+		
+	pthread_mutex_lock(&arrayLock);
+	fp2copy751(jinv, invArray[cntr]);
+	tempCnt = cntr;
+	cntr++; 
+	
+	int i;
+	if (cntr == batchSize) {
+		partial_batched_inv(invArray, invDest, 248);
+		pthread_mutex_unlock(&arrayLock);
+		for (i = 0; i < 247; i++) {
+			sem_post(&sign_sem);			
+		}
+	} else {
+		pthread_mutex_unlock(&arrayLock);
+		sem_wait(&sign_sem);
+	}
+	fp2copy751(invDest[tempCnt], jinv);
+	cntr = 0;
+
+	fp2mul751_mont(jinv, t0, jinv);                    // jinv = t0*jinv
 }
 
 
@@ -578,8 +620,6 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
     fp2mul751_mont(z1, z2, t0);                      // t0 = z1*z2
     fp2mul751_mont(z3, z4, t1);                      // t1 = z3*z4
     fp2mul751_mont(t0, t1, t2);                      // t2 = z1*z2*z3*z4
-	
-		//fp2inv751_mont(t2);
 
 		//printf("%s:%d\n", __FILE__, __LINE__);
 		pthread_mutex_lock(&arrayLock);
@@ -591,12 +631,10 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
 	
 		int i;
 
-		if (cntr == 248) {
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+		if (cntr == batchSize) {
 			partial_batched_inv(invArray, invDest, 248);
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-			pthread_mutex_unlock(&arrayLock);			
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			pthread_mutex_unlock(&arrayLock);
+
 			for (i = 0; i < 247; i++) {
 				sem_post(&sign_sem);			
 			}

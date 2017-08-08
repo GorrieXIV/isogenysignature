@@ -21,6 +21,9 @@ extern "C" {
     
 #include "../SIDH_internal.h"
 
+#define NUM_ROUNDS		248
+int NUM_THREADS;
+int batchSize;
     
 // Access system counter for benchmarking
 int64_t cpucycles(void);
