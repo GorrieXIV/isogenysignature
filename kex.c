@@ -11,13 +11,12 @@
 
 #include "SIDH_internal.h"
 #include "tests/test_extras.h"
-//#include "tests/kex_tests.c"
 
 extern const unsigned int splits_Alice[MAX_Alice];
 extern const unsigned int splits_Bob[MAX_Bob];
 
 
-CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom, int batchMode)
+CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyA, PCurveIsogenyStruct CurveIsogeny, bool GenerateRandom, invBatch* batch)
 { // Alice's key-pair generation
   // It produces a private key pPrivateKeyA and computes the public key pPublicKeyA.
   // The private key is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total). 
@@ -103,10 +102,10 @@ CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPubli
     eval_4_isog(phiQ, coeff);
     eval_4_isog(phiD, coeff);
 
-		if(!batchMode) {
+		if(batch == NULL) {
     	inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
 		} else {
-			inv_4_way_batch(C, phiP->Z, phiQ->Z, phiD->Z);
+			inv_4_way_batch(C, phiP->Z, phiQ->Z, batch);
 		}
     fp2mul751_mont(A, C, A);
     fp2mul751_mont(phiP->X, phiP->Z, phiP->X);
@@ -234,7 +233,7 @@ CRYPTO_STATUS KeyGeneration_B(unsigned char* pPrivateKeyB, unsigned char* pPubli
 }
 
 
-CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, int batchMode)
+CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPublicKeyB, unsigned char* pSharedSecretA, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, invBatch* batch)
 { // Alice's shared secret generation
   // It produces a shared secret key pSharedSecretA using her secret key pPrivateKeyA and Bob's public key pPublicKeyB
   // Inputs: Alice's pPrivateKeyA is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total). 
@@ -317,7 +316,7 @@ CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPub
 }
 
 
-CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint, int batchMode)
+CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPublicKeyA, unsigned char* pSharedSecretB, PCurveIsogenyStruct CurveIsogeny, point_proj_t kerngen, point_proj_t extractpoint, invBatch* batch)
 { // Bob's shared secret generation
   // It produces a shared secret key pSharedSecretB using his secret key pPrivateKeyB and Alice's public key pPublicKeyA
   // Inputs: Bob's pPrivateKeyB is an integer in the range [1, oB-1], where oA = 3^239 (i.e., 379 bits in total). 

@@ -14,13 +14,12 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include "tests/test_extras.h"
-//#include "tests/kex_tests.c"
 
-sem_t sign_sem;
-pthread_mutex_t arrayLock;
-f2elm_t invArray [NUM_ROUNDS];  //NUM_ROUNDS = 248 (default thread count)
-f2elm_t invDest [NUM_ROUNDS];		//NUM_ROUNDS = 248 (default thread count)
-int cntr = 0;
+//sem_t sign_sem;
+//pthread_mutex_t arrayLock;
+//f2elm_t invArray [248];  //NUM_ROUNDS = 248 (default thread count)
+//f2elm_t invDest [248];		//NUM_ROUNDS = 248 (default thread count)
+//int cntr = 0;
 
 void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv)
 { // Computes the j-invariant of a Montgomery curve with projective constant.
@@ -46,7 +45,7 @@ void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv)
     fp2mul751_mont(jinv, t0, jinv);                    // jinv = t0*jinv
 }
 
-void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, int batchSize) {
+void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, invBatch* batch) {	
 	f2elm_t t0, t1;
 	int tempCnt;
     
@@ -67,24 +66,24 @@ void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, int batchSize) {
 
 	//fp2inv751_mont(jinv);                              // jinv = 1/jinv 
 		
-	pthread_mutex_lock(&arrayLock);
-	fp2copy751(jinv, invArray[cntr]);
-	tempCnt = cntr;
-	cntr++; 
-	
+	pthread_mutex_lock(&batch->arrayLock);
+	fp2copy751(jinv, batch->invArray[batch->cntr]);
+	tempCnt = batch->cntr;
+	batch->cntr++; 
+	pthread_mutex_unlock(&batch->arrayLock);	
+	printf("%s %d: ctr = %d\n", __FILE__, __LINE__, batch->cntr);
+
 	int i;
-	if (cntr == batchSize) {
-		partial_batched_inv(invArray, invDest, 248);
-		pthread_mutex_unlock(&arrayLock);
-		for (i = 0; i < 247; i++) {
-			sem_post(&sign_sem);			
+	if (batch->cntr == batch->batchSize) {
+		partial_batched_inv(batch->invArray, batch->invDest, 248);
+		for (i = 0; i < batch->batchSize - 1; i++) {
+			sem_post(&batch->sign_sem);			
 		}
 	} else {
-		pthread_mutex_unlock(&arrayLock);
-		sem_wait(&sign_sem);
+		sem_wait(&batch->sign_sem);
 	}
-	fp2copy751(invDest[tempCnt], jinv);
-	cntr = 0;
+	fp2copy751(batch->invDest[tempCnt], jinv);
+	batch->cntr = 0;
 
 	fp2mul751_mont(jinv, t0, jinv);                    // jinv = t0*jinv
 }
@@ -610,7 +609,7 @@ void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4)
     fp2copy751(t2, z2);                              // z2 = 1/z2
 }
 
-void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
+void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* batch) {
 	// 4-way simultaneous inversion
   // Input:  z1,z2,z3,z4
   // Output: 1/z1,1/z2,1/z3,1/z4 (override inputs).
@@ -622,37 +621,39 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
     fp2mul751_mont(t0, t1, t2);                      // t2 = z1*z2*z3*z4
 
 		//printf("%s:%d\n", __FILE__, __LINE__);
-		pthread_mutex_lock(&arrayLock);
+		pthread_mutex_lock(&batch->arrayLock);
 		//printf("%s:%d cntr=%d\n", __FILE__, __LINE__, cntr);
-		fp2copy751(t2, invArray[cntr]);
-		tempCnt = cntr;
-		//printf("%s:%d Adding element %d to inversion buffer \n", __FILE__, __LINE__, tempCnt);
-		cntr++; 
+		fp2copy751(t2, batch->invArray[batch->cntr]);
+		tempCnt = batch->cntr;
+		printf("%s:%d Adding element %d to inversion buffer \n", __FILE__, __LINE__, tempCnt);
+		batch->cntr++; 
+		pthread_mutex_unlock(&batch->arrayLock);
 	
 		int i;
+	
+		printf("%s:%d cntr=%d, batchSize=%d\n", __FILE__, __LINE__, cntr, batchSize);		
+		
+		if (batch->cntr == batch->batchSize) {
+			partial_batched_inv(batch->invArray, batch->invDest, 248);
 
-		if (cntr == batchSize) {
-			partial_batched_inv(invArray, invDest, 248);
-			pthread_mutex_unlock(&arrayLock);
-
-			for (i = 0; i < 247; i++) {
-				sem_post(&sign_sem);			
+			for (i = 0; i < batch->batchSize; i++) {
+				sem_post(&batch->sign_sem);			
 			}
 
 			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		} else {
 			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-			pthread_mutex_unlock(&arrayLock);
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-			sem_wait(&sign_sem);
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
+			
+			//printf("%s:%d element %d waiting\n", __FILE__, __LINE__, tempCnt);
+			sem_wait(&batch->sign_sem);
+			//printf("%s:%d element %d resuming\n", __FILE__, __LINE__, tempCnt);
 		}
 
 
+		//printf("%s:%d retrieving inverted element %d\n", __FILE__, __LINE__, tempCnt);
+		fp2copy751(batch->invDest[tempCnt], t2);
 		//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-		fp2copy751(invDest[tempCnt], t2);
-
-		cntr = 0;
+		batch->cntr = 0;
 
     fp2mul751_mont(t0, t2, t0);                      // t0 = 1/(z3*z4) 
     fp2mul751_mont(t1, t2, t1);                      // t1 = 1/(z1*z2) 
@@ -663,7 +664,7 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4) {
     fp2mul751_mont(z2, t1, z1);                      // z1 = 1/z1
     fp2copy751(t2, z2);                              // z2 = 1/z2
 
-		//printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
+		printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
 }
 
 
