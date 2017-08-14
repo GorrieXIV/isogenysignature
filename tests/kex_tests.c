@@ -9,6 +9,7 @@
 *
 *********************************************************************************************/ 
 
+#include "../SIDH_internal.h"
 #include "../SIDH.h"
 #include "test_extras.h"
 #include <malloc.h>
@@ -590,6 +591,7 @@ void *sign_thread(void *TPS) {
 	
 		invBatch* signBatch;
 		signBatch->batchSize = 248;
+		signBatch->cntr = 0;
 		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
 		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
 		pthread_mutex_init(&signBatch->arrayLock, NULL);
@@ -926,7 +928,6 @@ int main(int argc, char *argv[])
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
 	printf("\n");
-	initSemaphore();
 
 
   CRYPTO_STATUS Status = CRYPTO_SUCCESS;
@@ -1013,8 +1014,6 @@ printf("%s %d: isogeny sign underway\n", __FILE__, __LINE__);
   			scycles = cycles2 - cycles1;
 
 printf("%s %d: isogeny verify underway\n", __FILE__, __LINE__);
-
-				//initSemaphore();
 
         cycles1 = cpucycles();
         Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);

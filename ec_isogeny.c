@@ -631,7 +631,7 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* b
 	
 		int i;
 	
-		printf("%s:%d cntr=%d, batchSize=%d\n", __FILE__, __LINE__, cntr, batchSize);		
+		//printf("%s:%d cntr=%d, batchSize=%d\n", __FILE__, __LINE__, cntr, batchSize);		
 		
 		if (batch->cntr == batch->batchSize) {
 			partial_batched_inv(batch->invArray, batch->invDest, 248);
@@ -639,20 +639,11 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* b
 			for (i = 0; i < batch->batchSize; i++) {
 				sem_post(&batch->sign_sem);			
 			}
-
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		} else {
-			//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
-			
-			//printf("%s:%d element %d waiting\n", __FILE__, __LINE__, tempCnt);
 			sem_wait(&batch->sign_sem);
-			//printf("%s:%d element %d resuming\n", __FILE__, __LINE__, tempCnt);
 		}
 
-
-		//printf("%s:%d retrieving inverted element %d\n", __FILE__, __LINE__, tempCnt);
 		fp2copy751(batch->invDest[tempCnt], t2);
-		//printf("%s:%d tempCnt=%d\n", __FILE__, __LINE__, tempCnt);
 		batch->cntr = 0;
 
     fp2mul751_mont(t0, t2, t0);                      // t0 = 1/(z3*z4) 
@@ -680,9 +671,4 @@ void distort_and_diff(felm_t xP, point_proj_t D, PCurveIsogenyStruct CurveIsogen
     fpcopy751(D->X[0], D->X[1]);                     // XD = XD*i
     fpzero751(D->X[0]);          
     fpadd751(xP, xP, D->Z[0]);                       // ZD = xP+xP
-}
-
-void initSemaphore() {
-	printf("initializing the semaphore..\n");
-	sem_init(&sign_sem, 0, 0);
 }

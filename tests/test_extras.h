@@ -18,20 +18,9 @@
 extern "C" {
 #endif
 
-    
+#include "../SIDH.h"
 #include "../SIDH_internal.h"
-#include <pthread.h>
-#include <semaphore.h>
 
-
-typedef struct {
-	int batchSize;
-	f2elm_t* invArray;  			//(default thread count of 248)
-	f2elm_t* invDest;					//(default thread count of 248)
-	int cntr = 0;
-	sem_t sign_sem;
-	pthread_mutex_t arrayLock;
-} invBatch;
     
 // Access system counter for benchmarking
 int64_t cpucycles(void);

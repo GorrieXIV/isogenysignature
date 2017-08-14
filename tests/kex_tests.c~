@@ -9,6 +9,7 @@
 *
 *********************************************************************************************/ 
 
+#include "../SIDH_internal.h"
 #include "../SIDH.h"
 #include "test_extras.h"
 #include <malloc.h>
@@ -588,14 +589,15 @@ void *sign_thread(void *TPS) {
 
 		//printf("%s:%d Signing Thread.. CUR_ROUND=%d\n", __FILE__, __LINE__, CUR_ROUND);
 	
-		invBatch signBatch;
-		signBatch.batchSize = 248;
-		signBatch.invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		signBatch.invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		pthread_mutex_init(&signBatch.arrayLock, NULL);
-		sem_init(&signBatch.sign_sem, 0, 0);
+		invBatch* signBatch;
+		signBatch->batchSize = 248;
+		signBatch->cntr = 0;
+		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		pthread_mutex_init(&signBatch->arrayLock, NULL);
+		sem_init(&signBatch->sign_sem, 0, 0);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, 1);
+    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, signBatch);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
 		}
@@ -926,7 +928,6 @@ int main(int argc, char *argv[])
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
 	printf("\n");
-	initSemaphore();
 
 
   CRYPTO_STATUS Status = CRYPTO_SUCCESS;

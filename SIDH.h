@@ -22,7 +22,9 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <tests/test_extras.h>
+
+#include <pthread.h>
+#include <semaphore.h>
 
 
 // Definition of operating system
@@ -314,6 +316,17 @@ CRYPTO_STATUS random_BigMont_mod_order(digit_t* random_digits, PCurveIsogenyStru
 // Clear "nwords" digits from memory
 void clear_words(void* mem, digit_t nwords);
 
+/*************** Data Structure for batch processing ***************/
+
+typedef struct {
+	int batchSize;
+	f2elm_t* invArray;  			//(default thread count of 248)
+	f2elm_t* invDest;					//(default thread count of 248)
+	int cntr;
+	sem_t sign_sem;
+	pthread_mutex_t arrayLock;
+} invBatch;
+
 /*********************** Key exchange API ***********************/ 
 
 // Alice's key-pair generation
@@ -376,6 +389,7 @@ CRYPTO_STATUS BigMont_ladder(unsigned char* x, digit_t* m, unsigned char* xout, 
 // endian format. 
 // Shared keys pSharedSecretA and pSharedSecretB consist of one element in GF(p751^2). In the key exchange API, they are encoded in 192 octets in little
 // endian format. 
+
 
 
 #ifdef __cplusplus

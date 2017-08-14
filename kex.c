@@ -102,10 +102,10 @@ CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPubli
     eval_4_isog(phiQ, coeff);
     eval_4_isog(phiD, coeff);
 
-		if(batch == NULL) {
-    	inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
+		if(batch != NULL) {
+			inv_4_way_batch(C, phiP->Z, phiQ->Z, phiD->Z, batch);
 		} else {
-			inv_4_way_batch(C, phiP->Z, phiQ->Z, batch);
+			inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
 		}
     fp2mul751_mont(A, C, A);
     fp2mul751_mont(phiP->X, phiP->Z, phiP->X);
@@ -296,8 +296,8 @@ CRYPTO_STATUS SecretAgreement_A(unsigned char* pPrivateKeyA, unsigned char* pPub
     
     get_4_isog(R, A, C, coeff);
 
-		if (batchMode) {
-			j_inv_batch(A, C, jinv, batchSize);
+		if (batch != NULL) {
+			j_inv_batch(A, C, jinv, batch);
 		} else {
 			j_inv(A, C, jinv);
 		}    
@@ -387,8 +387,8 @@ CRYPTO_STATUS SecretAgreement_B(unsigned char* pPrivateKeyB, unsigned char* pPub
     
     get_3_isog(R, A, C);    
     
-		if (batchMode) {
-			j_inv_batch(A, C, jinv, NUM_THREADS - batchSize);
+		if (batch != NULL) {
+			j_inv_batch(A, C, jinv, batch);
 		} else {
 			j_inv(A, C, jinv);
 		}  
