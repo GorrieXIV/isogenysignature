@@ -31,6 +31,9 @@
 int NUM_THREADS = 248;
 int CUR_ROUND = 0;
 int batchSize = 248;
+invBatch* signBatch;
+invBatch* verifyBatchA;
+invBatch* verifyBatchB;
 pthread_mutex_t RLOCK;
 pthread_mutex_t BLOCK;
 
@@ -587,16 +590,6 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-		//printf("%s:%d Signing Thread.. CUR_ROUND=%d\n", __FILE__, __LINE__, CUR_ROUND);
-	
-		invBatch* signBatch;
-		signBatch->batchSize = 248;
-		signBatch->cntr = 0;
-		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		pthread_mutex_init(&signBatch->arrayLock, NULL);
-		sem_init(&signBatch->sign_sem, 0, 0);
-
     Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, signBatch);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
@@ -646,7 +639,6 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     // Run the ZKP rounds
     int r;
     pthread_t sign_threads[NUM_THREADS];
-		batchSize = 0;
 
 		//sem_t invSem;
 		//potentially need a buffer defined here and passed through the threads
@@ -657,6 +649,15 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     	return 1;
     }
     thread_params_sign tps = {&CurveIsogeny, PrivateKey, PublicKey, sig, pbytes, n, obytes};
+		
+		signBatch = (invBatch*) malloc (sizeof(invBatch));
+
+		signBatch->batchSize = 248;
+		signBatch->cntr = 0;
+		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		pthread_mutex_init(&signBatch->arrayLock, NULL);
+		sem_init(&signBatch->sign_sem, 0, 0);
 
     int t;
     for (t=0; t<NUM_THREADS; t++) {
@@ -750,7 +751,7 @@ void *verify_thread(void *TPV) {
 
 		if (bit == 0) {
 			pthread_mutex_lock(&BLOCK);
-			batchSize++;
+			verifyBatchA->batchSize++;
 			pthread_mutex_unlock(&BLOCK);
 			//printf("round %d: bit 0 - ", r);
 
@@ -768,7 +769,19 @@ void *verify_thread(void *TPV) {
 			TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
             
 			//printf("%s:%d Verifying Thread.. CUR_ROUND =%d\n", __FILE__, __LINE__, CUR_ROUND);
-			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 1);
+
+			// need to wait for all other threads so that batchSize is correctly determined
+			if (verifyBatchA->batchSize + verifyBatchB->batchSize != batchSize) {
+				sem_wait(&verifyBatchA->sign_sem);
+			} else {
+				for (i = 0; i < verifyBatchA->batchSize - 1; i++) {
+					sem_post(&verifyBatchA->sign_sem);			
+				}
+			}
+	
+			//printf("%s:%d A threads synced up\n", __FILE__, __LINE__);
+
+			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, verifyBatchA);
 			
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E -> E/<R> failed");
@@ -788,7 +801,7 @@ void *verify_thread(void *TPV) {
 			unsigned char *TempSharSec;
 			TempSharSec = (unsigned char*)calloc(1, 2*tpv->pbytes);
 
-			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, 1);
+			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, verifyBatchA);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<S> -> E/<R,S> failed");
 			} else {
@@ -802,6 +815,9 @@ void *verify_thread(void *TPV) {
 			}
 
 		} else {
+			pthread_mutex_lock(&BLOCK);
+			verifyBatchB->batchSize++;
+			pthread_mutex_unlock(&BLOCK);
 			//printf("round %d: bit 1 - ", r);
 
 			// Check psi(S) has order 3^239 (need to triple it 239 times)
@@ -824,7 +840,19 @@ void *verify_thread(void *TPV) {
 			TempPubKey = calloc(1, 4*2*tpv->pbytes);
 			from_fp2mont(tpv->sig->Commitments1[r], ((f2elm_t*)TempPubKey)[0]);
 
-			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, 1);
+			// need to wait for all other threads so that batchSize is correctly determined
+
+			if (verifyBatchA->batchSize + verifyBatchB->batchSize != batchSize) {
+				sem_wait(&verifyBatchA->sign_sem);
+			} else {
+				for (i = 0; i < verifyBatchA->batchSize - 1; i++) {
+					sem_post(&verifyBatchA->sign_sem);			
+				}
+			}
+			
+			//printf("%s:%d B threads synced up\n", __FILE__, __LINE__);
+
+			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, verifyBatchB);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<R> -> E/<R,S> failed");
 			}
@@ -885,6 +913,24 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
     	return 1;
     }
     thread_params_verify tpv = {&CurveIsogeny, PublicKey, sig, cHashLength, cHash, pbytes, n, obytes};
+
+		verifyBatchA = (invBatch*) malloc (sizeof(invBatch));
+
+		verifyBatchA->batchSize = 0;
+		verifyBatchA->cntr = 0;
+		verifyBatchA->invArray = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		verifyBatchA->invDest = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		pthread_mutex_init(&verifyBatchA->arrayLock, NULL);
+		sem_init(&verifyBatchA->sign_sem, 0, 0);
+
+		verifyBatchB = (invBatch*) malloc (sizeof(invBatch));
+
+		verifyBatchB->batchSize = 0;
+		verifyBatchB->cntr = 0;
+		verifyBatchB->invArray = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		verifyBatchB->invDest = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		pthread_mutex_init(&verifyBatchB->arrayLock, NULL);
+		sem_init(&verifyBatchB->sign_sem, 0, 0);
 
     int t;
 		printf("%s %d: creating verify threads\n", __FILE__, __LINE__);
