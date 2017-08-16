@@ -71,11 +71,11 @@ void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, invBatch* batch) {
 	tempCnt = batch->cntr;
 	batch->cntr++; 
 	pthread_mutex_unlock(&batch->arrayLock);	
-	printf("%s %d: ctr = %d\n", __FILE__, __LINE__, batch->cntr);
+	//printf("%s %d: ctr = %d\n", __FILE__, __LINE__, batch->cntr);
 
 	int i;
-	if (batch->cntr == batch->batchSize) {
-		partial_batched_inv(batch->invArray, batch->invDest, 248);
+	if (tempCnt+1 == batch->batchSize) {
+		partial_batched_inv(batch->invArray, batch->invDest, batch->batchSize);
 		for (i = 0; i < batch->batchSize - 1; i++) {
 			sem_post(&batch->sign_sem);			
 		}
@@ -633,8 +633,8 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* b
 	
 		//printf("%s:%d cntr=%d, batchSize=%d\n", __FILE__, __LINE__, cntr, batchSize);		
 		
-		if (batch->cntr == batch->batchSize) {
-			partial_batched_inv(batch->invArray, batch->invDest, 248);
+		if (tempCnt+1 == batch->batchSize) {
+			partial_batched_inv(batch->invArray, batch->invDest, batch->batchSize);
 
 			for (i = 0; i < batch->batchSize; i++) {
 				sem_post(&batch->sign_sem);			
@@ -655,7 +655,7 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* b
     fp2mul751_mont(z2, t1, z1);                      // z1 = 1/z1
     fp2copy751(t2, z2);                              // z2 = 1/z2
 
-		//printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
+		printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
 }
 
 
