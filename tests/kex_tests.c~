@@ -843,10 +843,10 @@ void *verify_thread(void *TPV) {
 			// need to wait for all other threads so that batchSize is correctly determined
 
 			if (verifyBatchA->batchSize + verifyBatchB->batchSize != batchSize) {
-				sem_wait(&verifyBatchA->sign_sem);
+				sem_wait(&verifyBatchB->sign_sem);
 			} else {
 				for (i = 0; i < verifyBatchA->batchSize - 1; i++) {
-					sem_post(&verifyBatchA->sign_sem);			
+					sem_post(&verifyBatchB->sign_sem);			
 				}
 			}
 			
