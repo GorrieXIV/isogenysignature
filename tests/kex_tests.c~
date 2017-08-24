@@ -9,6 +9,7 @@
 *
 *********************************************************************************************/ 
 
+#include "../SIDH_internal.h"
 #include "../SIDH.h"
 #include "test_extras.h"
 #include <malloc.h>
@@ -25,11 +26,16 @@
 // Benchmark and test parameters  
 #define BENCH_LOOPS       10      // Number of iterations per bench 
 #define TEST_LOOPS        10      // Number of iterations per test
-#define NUM_ROUNDS		 1
+#define NUM_ROUNDS		248
 
 int NUM_THREADS = 248;
 int CUR_ROUND = 0;
+int batchSize = 248;
+invBatch* signBatch;
+invBatch* verifyBatchA;
+invBatch* verifyBatchB;
 pthread_mutex_t RLOCK;
+pthread_mutex_t BLOCK;
 
 // Used in BigMont tests
 static const uint64_t output1[12] = { 0x30E9AFA5BF75A92F, 0x88BC71EE9E221028, 0x999A50A9EE3B9A8E, 0x77E2934BD8D38B5A, 0x2668CAFC2933DB58, 0x457C65F7AD941041, 
@@ -99,11 +105,11 @@ CRYPTO_STATUS cryptotest_kex(PCurveIsogenyStaticData CurveIsogenyData)
         goto finish;
     }
     
-    Status = SecretAgreement_A(PrivateKeyA, PublicKeyB, SharedSecretA, CurveIsogeny, NULL);    // Alice computes her shared secret using Bob's public key
+    Status = SecretAgreement_A(PrivateKeyA, PublicKeyB, SharedSecretA, CurveIsogeny, NULL, 0);    // Alice computes her shared secret using Bob's public key
     if (Status != CRYPTO_SUCCESS) {
         goto cleanup;
     }    
-    Status = SecretAgreement_B(PrivateKeyB, PublicKeyA, SharedSecretB, CurveIsogeny, NULL, NULL);    // Bob computes his shared secret using Alice's public key
+    Status = SecretAgreement_B(PrivateKeyB, PublicKeyA, SharedSecretB, CurveIsogeny, NULL, NULL, 0);    // Bob computes his shared secret using Alice's public key
     if (Status != CRYPTO_SUCCESS) {
         goto cleanup;
     }
@@ -298,7 +304,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     for (n = 0; n < BENCH_LOOPS; n++)
     {
         cycles1 = cpucycles();
-        Status = SecretAgreement_A(PrivateKeyA, PublicKeyB, SharedSecretA, CurveIsogeny, NULL);                     
+        Status = SecretAgreement_A(PrivateKeyA, PublicKeyB, SharedSecretA, CurveIsogeny, NULL, 0);                     
         if (Status != CRYPTO_SUCCESS) {                                                  
             passed = false;
             break;
@@ -316,7 +322,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     for (n = 0; n < BENCH_LOOPS; n++)
     {
         cycles1 = cpucycles();
-        Status = SecretAgreement_B(PrivateKeyB, PublicKeyA, SharedSecretB, CurveIsogeny, NULL, NULL);                     
+        Status = SecretAgreement_B(PrivateKeyB, PublicKeyA, SharedSecretB, CurveIsogeny, NULL, NULL, 0);                     
         if (Status != CRYPTO_SUCCESS) {                                                  
             passed = false;
             break;
@@ -556,6 +562,7 @@ void *sign_thread(void *TPS) {
 		int stop=0;
 
 		pthread_mutex_lock(&RLOCK);
+		
 		if (CUR_ROUND >= NUM_ROUNDS) {
 			stop=1;
 		} else {
@@ -570,6 +577,7 @@ void *sign_thread(void *TPS) {
 
 
 		//cycles1 = cpucycles();
+		//printf("%s:%d r=%d\n", __FILE__, __LINE__, r);
 
 		tps->sig->Randoms[r] = (unsigned char*)calloc(1, tps->obytes);
 		tps->sig->Commitments1[r] = (unsigned char*)calloc(1, 2*tps->pbytes);
@@ -582,7 +590,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, 1);
+    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, signBatch);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
 		}
@@ -593,7 +601,7 @@ void *sign_thread(void *TPS) {
     ////////////////////////////
     //TODO: compute using A instead
     
-		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r]);
+		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r], 0);
     if(Status != CRYPTO_SUCCESS) {
 			printf("Random point generation failed"); 
     }
@@ -641,6 +649,15 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     	return 1;
     }
     thread_params_sign tps = {&CurveIsogeny, PrivateKey, PublicKey, sig, pbytes, n, obytes};
+		
+		signBatch = (invBatch*) malloc (sizeof(invBatch));
+
+		signBatch->batchSize = 248;
+		signBatch->cntr = 0;
+		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		pthread_mutex_init(&signBatch->arrayLock, NULL);
+		sem_init(&signBatch->sign_sem, 0, 0);
 
     int t;
     for (t=0; t<NUM_THREADS; t++) {
@@ -708,12 +725,12 @@ void *verify_thread(void *TPV) {
 	thread_params_verify *tpv = (thread_params_verify*) TPV;
 
 	// iterate through cHash bits as challenge and verify
-    bool verified = true;
-    int r=0;
-    int i,j;
+	bool verified = true;
+	int r=0;
+	int i,j;
 
-    while (1) {
-    	int stop=0;
+	while (1) {
+		int stop=0;
 
 		pthread_mutex_lock(&RLOCK);
 		if (CUR_ROUND >= NUM_ROUNDS) {
@@ -733,89 +750,125 @@ void *verify_thread(void *TPV) {
 		int bit = tpv->cHash[i] & (1 << j);  //challenge bit
 
 		if (bit == 0) {
-            //printf("round %d: bit 0 - ", r);
+			pthread_mutex_lock(&BLOCK);
+			verifyBatchA->batchSize++;
+			pthread_mutex_unlock(&BLOCK);
+			//printf("round %d: bit 0 - ", r);
 
-            // Check R, phi(R) has order 2^372 (suffices to check that the random number is even)
-            uint8_t lastbyte = ((uint8_t*) tpv->sig->Randoms[r])[0];
-            if (lastbyte % 2) {
-                printf("ERROR: R, phi(R) are not full order\n");
-            } else {
-                //printf("checked order. ");
-            }
+			// Check R, phi(R) has order 2^372 (suffices to check that the random number is even)
+			uint8_t lastbyte = ((uint8_t*) tpv->sig->Randoms[r])[0];
+			if (lastbyte % 2) {
+				printf("ERROR: R, phi(R) are not full order\n");
+			} else {
+				//printf("checked order. ");
+			}
 
-            // Check kernels
-            f2elm_t A;
-            unsigned char *TempPubKey;
-            TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
+			// Check kernels
+			f2elm_t A;
+			unsigned char *TempPubKey;
+			TempPubKey = (unsigned char*)calloc(1, 4*2*tpv->pbytes);
             
-            Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, 1);
-            if(Status != CRYPTO_SUCCESS) {
-                printf("Computing E -> E/<R> failed");
-            }
+			//printf("%s:%d Verifying Thread.. CUR_ROUND =%d\n", __FILE__, __LINE__, CUR_ROUND);
+
+			// need to wait for all other threads so that batchSize is correctly determined
+			if (verifyBatchA->batchSize + verifyBatchB->batchSize != batchSize) {
+				sem_wait(&verifyBatchA->sign_sem);
+			} else {
+				for (i = 0; i < verifyBatchA->batchSize - 1; i++) {
+					sem_post(&verifyBatchA->sign_sem);			
+				}
+			}
+	
+			//printf("%s:%d A threads synced up\n", __FILE__, __LINE__);
+
+			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, verifyBatchA);
+			
+			if(Status != CRYPTO_SUCCESS) {
+				printf("Computing E -> E/<R> failed");
+			} else {
+				printf("%s %d: thread success of KeyGenA\n", __FILE__, __LINE__);
+			}
+			
             
-            to_fp2mont(((f2elm_t*)TempPubKey)[0], A);
+			to_fp2mont(((f2elm_t*)TempPubKey)[0], A);
 
-            int cmp = memcmp(A, tpv->sig->Commitments1[r], sizeof(f2elm_t));
-            if (cmp != 0) {
-                verified = false;
-                printf("verifying E -> E/<R> failed\n");
-            }
+			int cmp = memcmp(A, tpv->sig->Commitments1[r], sizeof(f2elm_t));
+			if (cmp != 0) {
+				verified = false;
+				printf("verifying E -> E/<R> failed\n");
+			}
             
+			unsigned char *TempSharSec;
+			TempSharSec = (unsigned char*)calloc(1, 2*tpv->pbytes);
 
-            unsigned char *TempSharSec;
-            TempSharSec = (unsigned char*)calloc(1, 2*tpv->pbytes);
+			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, verifyBatchA);
+			if(Status != CRYPTO_SUCCESS) {
+				printf("Computing E/<S> -> E/<R,S> failed");
+			} else {
+				printf("%s %d: thread success of SecAgrA\n", __FILE__, __LINE__);
+			}
 
-            Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL);
-            if(Status != CRYPTO_SUCCESS) {
-                printf("Computing E/<S> -> E/<R,S> failed");
-            }
+			cmp = memcmp(TempSharSec, tpv->sig->Commitments2[r], 2*tpv->pbytes);
+			if (cmp != 0) {
+				verified = false;
+				printf("verifying E/<S> -> E/<R,S> failed\n");
+			}
 
-            cmp = memcmp(TempSharSec, tpv->sig->Commitments2[r], 2*tpv->pbytes);
-            if (cmp != 0) {
-                verified = false;
-                printf("verifying E/<S> -> E/<R,S> failed\n");
-            }
+		} else {
+			pthread_mutex_lock(&BLOCK);
+			verifyBatchB->batchSize++;
+			pthread_mutex_unlock(&BLOCK);
+			//printf("round %d: bit 1 - ", r);
 
-        } else {
-            //printf("round %d: bit 1 - ", r);
+			// Check psi(S) has order 3^239 (need to triple it 239 times)
+			point_proj_t triple = {0};
+			copy_words((digit_t*)tpv->sig->psiS[r], (digit_t*)triple, 2*2*NWORDS_FIELD);
 
-            // Check psi(S) has order 3^239 (need to triple it 239 times)
-            point_proj_t triple = {0};
-            copy_words((digit_t*)tpv->sig->psiS[r], (digit_t*)triple, 2*2*NWORDS_FIELD);
+			f2elm_t A,C={0};
+			to_fp2mont(((f2elm_t*)tpv->PublicKey)[0],A);
+			fpcopy751((*(tpv->CurveIsogeny))->C, C[0]);
+			int t;
+			for (t=0; t<238; t++) {
+				xTPL(triple, triple, A, C);
+				if (is_felm_zero(((felm_t*)triple->Z)[0]) && is_felm_zero(((felm_t*)triple->Z)[1])) {
+					printf("ERROR: psi(S) has order 3^%d\n", t+1);
+				}
+			}
 
-            f2elm_t A,C={0};
-            to_fp2mont(((f2elm_t*)tpv->PublicKey)[0],A);
-            fpcopy751((*(tpv->CurveIsogeny))->C, C[0]);
-            int t;
-            for (t=0; t<238; t++) {
-                xTPL(triple, triple, A, C);
-                if (is_felm_zero(((felm_t*)triple->Z)[0]) && is_felm_zero(((felm_t*)triple->Z)[1])) {
-                    printf("ERROR: psi(S) has order 3^%d\n", t+1);
-                }
-            }
+			unsigned char *TempSharSec, *TempPubKey;
+			TempSharSec = calloc(1, 2*tpv->pbytes);
+			TempPubKey = calloc(1, 4*2*tpv->pbytes);
+			from_fp2mont(tpv->sig->Commitments1[r], ((f2elm_t*)TempPubKey)[0]);
 
-            unsigned char *TempSharSec, *TempPubKey;
-            TempSharSec = calloc(1, 2*tpv->pbytes);
-            TempPubKey = calloc(1, 4*2*tpv->pbytes);
-            from_fp2mont(tpv->sig->Commitments1[r], ((f2elm_t*)TempPubKey)[0]);
+			// need to wait for all other threads so that batchSize is correctly determined
 
-            Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL);
-            if(Status != CRYPTO_SUCCESS) {
-                printf("Computing E/<R> -> E/<R,S> failed");
-            }
+			if (verifyBatchA->batchSize + verifyBatchB->batchSize != batchSize) {
+				sem_wait(&verifyBatchB->sign_sem);
+			} else {
+				for (i = 0; i < verifyBatchA->batchSize - 1; i++) {
+					sem_post(&verifyBatchB->sign_sem);			
+				}
+			}
+			
+			//printf("%s:%d B threads synced up\n", __FILE__, __LINE__);
 
-            int cmp = memcmp(TempSharSec, tpv->sig->Commitments2[r], 2*tpv->pbytes);
-            if (cmp != 0) {
-                verified = false;
-                printf("verifying E/<R> -> E/<R,S> failed\n");
-            }
-        }
-    }
+			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, verifyBatchB);
+			if(Status != CRYPTO_SUCCESS) {
+				printf("Computing E/<R> -> E/<R,S> failed");
+			}
 
-    if (!verified) {
-    	printf("ERROR: verify failed.\n");
-	    //printf("Average time for verification per round ...... %10lld cycles\n", totcycles/NUM_ROUNDS);
-    }
+			int cmp = memcmp(TempSharSec, tpv->sig->Commitments2[r], 2*tpv->pbytes);
+			if (cmp != 0) {
+				verified = false;
+				printf("verifying E/<R> -> E/<R,S> failed\n");
+			}
+		}
+	}
+
+	if (!verified) {
+		printf("ERROR: verify failed.\n");
+		//printf("Average time for verification per round ...... %10lld cycles\n", totcycles/NUM_ROUNDS);
+	}
 }
 
 
@@ -828,6 +881,7 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
     bool passed;
 
     int r;
+
 
     // Curve isogeny system initialization
     CurveIsogeny = SIDH_curve_allocate(CurveIsogenyData);
@@ -860,7 +914,27 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
     }
     thread_params_verify tpv = {&CurveIsogeny, PublicKey, sig, cHashLength, cHash, pbytes, n, obytes};
 
+		verifyBatchA = (invBatch*) malloc (sizeof(invBatch));
+
+		verifyBatchA->batchSize = 0;
+		verifyBatchA->cntr = 0;
+		verifyBatchA->invArray = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		verifyBatchA->invDest = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		pthread_mutex_init(&verifyBatchA->arrayLock, NULL);
+		sem_init(&verifyBatchA->sign_sem, 0, 0);
+
+		verifyBatchB = (invBatch*) malloc (sizeof(invBatch));
+
+		verifyBatchB->batchSize = 0;
+		verifyBatchB->cntr = 0;
+		verifyBatchB->invArray = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		verifyBatchB->invDest = (f2elm_t*) malloc (batchSize * sizeof(f2elm_t));
+		pthread_mutex_init(&verifyBatchB->arrayLock, NULL);
+		sem_init(&verifyBatchB->sign_sem, 0, 0);
+
     int t;
+		printf("%s %d: creating verify threads\n", __FILE__, __LINE__);
+		fflush(stdout);
     for (t=0; t<NUM_THREADS; t++) {
     	if (pthread_create(&verify_threads[t], NULL, verify_thread, &tpv)) {
     		printf("ERROR: Failed to create thread %d\n", t);
@@ -896,11 +970,10 @@ int main(int argc, char *argv[])
 	//if (argc > 1) {
 		//NUM_THREADS = atoi(argv[1]);
 	//}
-
+	NUM_THREADS = 248;
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
-	//printf("\n");
-	initSemaphore();
+	printf("\n");
 
 
   CRYPTO_STATUS Status = CRYPTO_SUCCESS;
@@ -964,7 +1037,7 @@ int main(int argc, char *argv[])
         struct Signature sig;
 
 
-
+printf("%s %d: isogeny keygen underway\n", __FILE__, __LINE__);
 
         cycles1 = cpucycles();
         Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
@@ -975,6 +1048,8 @@ int main(int argc, char *argv[])
         cycles2 = cpucycles();
         kgcycles = cycles2 - cycles1;
 
+printf("%s %d: isogeny sign underway\n", __FILE__, __LINE__);
+
         cycles1 = cpucycles();
   			Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
   			if (Status != CRYPTO_SUCCESS) {
@@ -984,6 +1059,8 @@ int main(int argc, char *argv[])
   			cycles2 = cpucycles();
   			scycles = cycles2 - cycles1;
 
+printf("%s %d: isogeny verify underway\n", __FILE__, __LINE__);
+
         cycles1 = cpucycles();
         Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
         if (Status != CRYPTO_SUCCESS) {
@@ -992,6 +1069,7 @@ int main(int argc, char *argv[])
         }
         cycles2 = cpucycles();
         vcycles = cycles2 - cycles1;
+	printf("%s:%d\n", __FILE__, __LINE__);
 
         printf("KeyGen ............. %10lld cycles\n", kgcycles);
         printf("Signing ............ %10lld cycles\n", scycles);

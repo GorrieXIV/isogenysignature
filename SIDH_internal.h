@@ -355,6 +355,8 @@ void swap_points(point_proj_t P, point_proj_t Q, digit_t option);
 // Computes the j-invariant of a Montgomery curve with projective constant.
 void j_inv(f2elm_t A, f2elm_t C, f2elm_t jinv);
 
+void j_inv_batch(f2elm_t A, f2elm_t C, f2elm_t jinv, invBatch* batch);
+
 // Simultaneous doubling and differential addition.
 void xDBLADD(point_proj_t P, point_proj_t Q, f2elm_t xPQ, f2elm_t A24);
 
@@ -413,7 +415,7 @@ void eval_3_isog(point_proj_t P, point_proj_t Q);
 void inv_4_way(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4);
 
 // 4-way simultaneous inversion for batched processes
-void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4);
+void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* batch);
 
 // Computing the point D = (x(Q-P),z(Q-P))
 void distort_and_diff(felm_t xP, point_proj_t d, PCurveIsogenyStruct CurveIsogeny);

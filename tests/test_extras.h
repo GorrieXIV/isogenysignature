@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-    
+#include "../SIDH.h"
 #include "../SIDH_internal.h"
 
     

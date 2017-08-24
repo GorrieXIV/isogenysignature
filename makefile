@@ -93,5 +93,5 @@ kex_tests.o: tests/kex_tests.c SIDH.h
 .PHONY: clean
 
 clean:
-	rm kex_test fp_generic.o fp_x64.o fp_x64_asm.o $(OBJECTS_ALL)
+	rm kex_test fp_generic.o fp_x64.o fp_x64_asm.o $(OBJECTS_ALL) *~
 
