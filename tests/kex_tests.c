@@ -591,7 +591,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, signBatch);
+    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, NULL);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
 		}
@@ -785,12 +785,12 @@ void *verify_thread(void *TPV) {
 	
 			//printf("%s:%d A threads synced up\n", __FILE__, __LINE__);
 
-			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, verifyBatchA);
+			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, NULL);
 			
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E -> E/<R> failed");
 			} else {
-				printf("%s %d: thread success of KeyGenA\n", __FILE__, __LINE__);
+				//printf("%s %d: thread success of KeyGenA\n", __FILE__, __LINE__);
 			}
 			
             
@@ -805,11 +805,11 @@ void *verify_thread(void *TPV) {
 			unsigned char *TempSharSec;
 			TempSharSec = (unsigned char*)calloc(1, 2*tpv->pbytes);
 
-			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, verifyBatchB);
+			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, NULL);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<S> -> E/<R,S> failed");
 			} else {
-				printf("%s %d: thread success of SecAgrA\n", __FILE__, __LINE__);
+				//printf("%s %d: thread success of SecAgrA\n", __FILE__, __LINE__);
 			}
 
 			cmp = memcmp(TempSharSec, tpv->sig->Commitments2[r], 2*tpv->pbytes);
@@ -857,7 +857,7 @@ void *verify_thread(void *TPV) {
 			
 			//printf("%s:%d B threads synced up\n", __FILE__, __LINE__);
 
-			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, verifyBatchC);
+			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, NULL);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<R> -> E/<R,S> failed");
 			}
@@ -1116,6 +1116,27 @@ printf("%s %d: isogeny verify underway\n", __FILE__, __LINE__);
     return true;
 }
 
+/*
+w/ batch vs w/o batch
+
+KeyGen .............  128104884 cycles
+KeyGen .............  108382368 cycles
+vs
+KeyGen .............  131459712 cycles
+KeyGen .............  109621044 cycles
+
+Signing ............ 43102666188 cycles
+Signing ............ 43023289428 cycles
+vs
+Signing ............ 43268783700 cycles
+Signing ............ 43279532808 cycles
+
+Verifying .......... 31124711736 cycles
+Verifying .......... 30407388504 cycles
+vs
+Verifying .......... 29729812416 cycles
+Verifying .......... 29373299148 cycles
+*/
 
 
 

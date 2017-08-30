@@ -655,7 +655,7 @@ void inv_4_way_batch(f2elm_t z1, f2elm_t z2, f2elm_t z3, f2elm_t z4, invBatch* b
 	fp2mul751_mont(z2, t1, z1);                      // z1 = 1/z1
 	fp2copy751(t2, z2);                              // z2 = 1/z2
 
-	printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
+	//printf("%s:%d Batched inversion complete \n", __FILE__, __LINE__);		
 }
 
 
