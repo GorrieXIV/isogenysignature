@@ -31,7 +31,8 @@
 int NUM_THREADS = 248;
 int CUR_ROUND = 0;
 int batchSize = 248;
-invBatch* signBatch;
+invBatch* signBatchA;
+invBatch* signBatchB;
 invBatch* verifyBatchA;
 invBatch* verifyBatchB;
 invBatch* verifyBatchC;
@@ -601,6 +602,8 @@ void *sign_thread(void *TPS) {
 
     ////////////////////////////
     //TODO: compute using A instead
+
+		//NEED TO REFRESH BATCH PARAMS AND THEN PASS BATCH STRUCT TO SECAGRB
     
 		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r], 0);
     if(Status != CRYPTO_SUCCESS) {
@@ -651,14 +654,23 @@ CRYPTO_STATUS isogeny_sign(PCurveIsogenyStaticData CurveIsogenyData, unsigned ch
     }
     thread_params_sign tps = {&CurveIsogeny, PrivateKey, PublicKey, sig, pbytes, n, obytes};
 		
-		signBatch = (invBatch*) malloc (sizeof(invBatch));
+		signBatchA = (invBatch*) malloc (sizeof(invBatch));
 
-		signBatch->batchSize = 248;
-		signBatch->cntr = 0;
-		signBatch->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		signBatch->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
-		pthread_mutex_init(&signBatch->arrayLock, NULL);
-		sem_init(&signBatch->sign_sem, 0, 0);
+		signBatchA->batchSize = 248;
+		signBatchA->cntr = 0;
+		signBatchA->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		signBatchA->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		pthread_mutex_init(&signBatchA->arrayLock, NULL);
+		sem_init(&signBatchA->sign_sem, 0, 0);
+
+		signBatchB = (invBatch*) malloc (sizeof(invBatch));
+
+		signBatchB->batchSize = 248;
+		signBatchB->cntr = 0;
+		signBatchB->invArray = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		signBatchB->invDest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+		pthread_mutex_init(&signBatchB->arrayLock, NULL);
+		sem_init(&signBatchB->sign_sem, 0, 0);
 
     int t;
     for (t=0; t<NUM_THREADS; t++) {
