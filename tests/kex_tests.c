@@ -989,166 +989,154 @@ cleanup:
 
 
 // Optional parameters: #threads, #rounds
-int main(int argc, char *argv[])
-{
-	//NUM_THREADS = 1;
-
-	//if (argc > 1) {
-		//NUM_THREADS = atoi(argv[1]);
-	//}
+int main(int argc, char *argv[]) {
 	NUM_THREADS = 248;
 	printf("NUM_THREADS: %d\n", NUM_THREADS);
 
 	printf("\n");
 
-
-  CRYPTO_STATUS Status = CRYPTO_SUCCESS;
-
-
-/*
-    Status = cryptotest_kex(&CurveIsogeny_SIDHp751);       // Test elliptic curve isogeny system "SIDHp751"
-    if (Status != CRYPTO_SUCCESS) {
-        printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-        return false;
-    }
-
-    Status = cryptorun_kex(&CurveIsogeny_SIDHp751);        // Benchmark elliptic curve isogeny system "SIDHp751"
-    if (Status != CRYPTO_SUCCESS) {
-        printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-        return false;
-    }
-
-    Status = cryptotest_BigMont(&CurveIsogeny_SIDHp751);   // Test elliptic curve "BigMont"
-    if (Status != CRYPTO_SUCCESS) {
-        printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-        return false;
-    }
-
-    Status = cryptorun_BigMont(&CurveIsogeny_SIDHp751);    // Benchmark elliptic curve "BigMont"
-    if (Status != CRYPTO_SUCCESS) {
-        printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-        return false;
-    }
-*/
-
-
-
-    int rep;
-    for (rep=0; rep<10; rep++) {
-
-        Status = cryptotest_kex(&CurveIsogeny_SIDHp751);       // Test elliptic curve isogeny system "SIDHp751"
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
-
-        Status = cryptorun_kex(&CurveIsogeny_SIDHp751);        // Benchmark elliptic curve isogeny system "SIDHp751"
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
-
-        printf("\n\nBENCHMARKING SIGNATURE run %d:\n", rep+1);
-
-
-        unsigned int pbytes = (CurveIsogeny_SIDHp751.pwordbits + 7)/8;      // Number of bytes in a field element 
-        unsigned int n, obytes = (CurveIsogeny_SIDHp751.owordbits + 7)/8;   // Number of bytes in an element in [1, order]
-        unsigned long long cycles1, cycles2, kgcycles, scycles, vcycles;
-
-        // Allocate space for keys
-        unsigned char *PrivateKey, *PublicKey;
-        PrivateKey = (unsigned char*)calloc(1, obytes);        // One element in [1, order]  
-        PublicKey = (unsigned char*)calloc(1, 4*2*pbytes);     // Four elements in GF(p^2)
-
-        struct Signature sig;
-
-
-printf("%s %d: isogeny keygen underway\n", __FILE__, __LINE__);
-
-        cycles1 = cpucycles();
-        Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
-        cycles2 = cpucycles();
-        kgcycles = cycles2 - cycles1;
-
-printf("%s %d: isogeny sign underway\n", __FILE__, __LINE__);
-
-        cycles1 = cpucycles();
-  			Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
-  			if (Status != CRYPTO_SUCCESS) {
-  				printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-  				return false;
-  			}
-  			cycles2 = cpucycles();
-  			scycles = cycles2 - cycles1;
-
-printf("%s %d: isogeny verify underway\n", __FILE__, __LINE__);
-
-        cycles1 = cpucycles();
-        Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
-        cycles2 = cpucycles();
-        vcycles = cycles2 - cycles1;
-	printf("%s:%d\n", __FILE__, __LINE__);
-
-        printf("KeyGen ............. %10lld cycles\n", kgcycles);
-        printf("Signing ............ %10lld cycles\n", scycles);
-        printf("Verifying .......... %10lld cycles\n\n", vcycles);
-
-
-        clear_words((void*)PrivateKey, NBYTES_TO_NWORDS(obytes));
-        clear_words((void*)PublicKey, NBYTES_TO_NWORDS(4*2*pbytes));
-
+	CRYPTO_STATUS Status = CRYPTO_SUCCESS;
 
 
 /*
-        Status = cryptotest_BigMont(&CurveIsogeny_SIDHp751);   // Test elliptic curve "BigMont"
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
+	Status = cryptotest_kex(&CurveIsogeny_SIDHp751);       // Test elliptic curve isogeny system "SIDHp751"
+	if (Status != CRYPTO_SUCCESS) {
+		printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+		return false;
+	}
 
-        Status = cryptorun_BigMont(&CurveIsogeny_SIDHp751);    // Benchmark elliptic curve "BigMont"
-        if (Status != CRYPTO_SUCCESS) {
-            printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
-            return false;
-        }
+	Status = cryptorun_kex(&CurveIsogeny_SIDHp751);        // Benchmark elliptic curve isogeny system "SIDHp751"
+	if (Status != CRYPTO_SUCCESS) {
+		printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+		return false;
+	}
+
+	Status = cryptotest_BigMont(&CurveIsogeny_SIDHp751);   // Test elliptic curve "BigMont"
+	if (Status != CRYPTO_SUCCESS) {
+		printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+		return false;
+	}
+
+	Status = cryptorun_BigMont(&CurveIsogeny_SIDHp751);    // Benchmark elliptic curve "BigMont"
+	if (Status != CRYPTO_SUCCESS) {
+		printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+		return false;
+	}
 */
 
-    }
 
-    
+/*
+	int rep;
+	for (rep=0; rep<10; rep++) {
 
-    return true;
+		Status = cryptotest_kex(&CurveIsogeny_SIDHp751);       // Test elliptic curve isogeny system "SIDHp751"
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+
+		Status = cryptorun_kex(&CurveIsogeny_SIDHp751);        // Benchmark elliptic curve isogeny system "SIDHp751"
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+
+		printf("\n\nBENCHMARKING SIGNATURE run %d:\n", rep+1);
+
+
+		unsigned int pbytes = (CurveIsogeny_SIDHp751.pwordbits + 7)/8;      // Number of bytes in a field element 
+		unsigned int n, obytes = (CurveIsogeny_SIDHp751.owordbits + 7)/8;   // Number of bytes in an element in [1, order]
+		unsigned long long cycles1, cycles2, kgcycles, scycles, vcycles;
+
+		// Allocate space for keys
+		unsigned char *PrivateKey, *PublicKey;
+		PrivateKey = (unsigned char*)calloc(1, obytes);        // One element in [1, order]  
+		PublicKey = (unsigned char*)calloc(1, 4*2*pbytes);     // Four elements in GF(p^2)
+
+		struct Signature sig;
+		
+		printf("%s %d: isogeny keygen underway\n", __FILE__, __LINE__);
+
+		cycles1 = cpucycles();
+		Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
+		cycles2 = cpucycles();
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+		kgcycles = cycles2 - cycles1;
+
+		printf("%s %d: isogeny sign underway\n", __FILE__, __LINE__);
+
+		cycles1 = cpucycles();
+		Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
+		cycles2 = cpucycles();
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+		scycles = cycles2 - cycles1;
+
+		printf("%s %d: isogeny verify underway\n", __FILE__, __LINE__);
+
+		cycles1 = cpucycles();
+		Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+		cycles2 = cpucycles();
+		vcycles = cycles2 - cycles1;
+
+		printf("KeyGen ............. %10lld cycles\n", kgcycles);
+		printf("Signing ............ %10lld cycles\n", scycles);
+		printf("Verifying .......... %10lld cycles\n\n", vcycles);
+
+		clear_words((void*)PrivateKey, NBYTES_TO_NWORDS(obytes));
+		clear_words((void*)PublicKey, NBYTES_TO_NWORDS(4*2*pbytes));
+
+/*
+		Status = cryptotest_BigMont(&CurveIsogeny_SIDHp751);   // Test elliptic curve "BigMont"
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+
+		Status = cryptorun_BigMont(&CurveIsogeny_SIDHp751);    // Benchmark elliptic curve "BigMont"
+		if (Status != CRYPTO_SUCCESS) {
+			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
+			return false;
+		}
+
+	}*/
+	
+	int rep;
+	for (rep=0; rep<10; rep++) {
+		//benchmark low-level inversion
+	}
+	
+	int rep;
+	for (rep=0; rep<10; rep++) {
+		//benchmark batched partial inversion
+	}
+	
+	int rep;
+	for (rep=0; rep<10; rep++) {
+		//bechmark keygen
+	}
+	
+	int rep;
+	for (rep=0; rep<10; rep++) {
+		//benchmark sign
+	}
+
+	int rep;
+	for (rep=0; rep<10; rep++) {
+		//benchmark verify
+	}
+
+	return true;
 }
-
-/*
-w/ batch vs w/o batch
-
-KeyGen .............  128104884 cycles
-KeyGen .............  108382368 cycles
-vs
-KeyGen .............  131459712 cycles
-KeyGen .............  109621044 cycles
-
-Signing ............ 43102666188 cycles
-Signing ............ 43023289428 cycles
-vs
-Signing ............ 43268783700 cycles
-Signing ............ 43279532808 cycles
-
-Verifying .......... 31124711736 cycles
-Verifying .......... 30407388504 cycles
-vs
-Verifying .......... 29729812416 cycles
-Verifying .......... 29373299148 cycles
-*/
 
 
 
