@@ -1,0 +1,6 @@
+avg clock cycles for 100 runs:
+keygen:					   68881331
+sign (without batch): 	15744477032
+sign (with batch): 		15565738003
+verify (without batch):	11183112648
+verify (with batch): 	10800158871

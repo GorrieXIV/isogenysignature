@@ -124,7 +124,6 @@ CRYPTO_STATUS cryptotest_kex(PCurveIsogenyStaticData CurveIsogenyData)
 finish:
     if (passed == true) printf("  Key exchange tests ........................................... PASSED");
     else { printf("  Key exchange tests ... FAILED"); printf("\n"); goto cleanup; }
-    printf("\n"); 
 
 cleanup:
     SIDH_curve_free(CurveIsogeny);
@@ -185,7 +184,7 @@ CRYPTO_STATUS cryptotest_BigMont(PCurveIsogenyStaticData CurveIsogenyData)
 
     if (passed == true) printf("  BigMont's scalar multiplication tests ........................ PASSED");
     else { printf("  BigMont's scalar multiplication tests ... FAILED"); printf("\n"); goto cleanup; }
-    printf("\n"); 
+    //printf("\n"); 
 
 cleanup:
     SIDH_curve_free(CurveIsogeny);
@@ -244,7 +243,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Alice's key generation runs in ............................... %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Alice's key generation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
     // Benchmarking Bob's key generation
     passed = true;
@@ -262,7 +261,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Bob's key generation runs in ................................. %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Bob's key generation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
     // Benchmarking Alice's public key validation
     passed = true;
@@ -280,7 +279,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Alice's public key validation runs in ........................ %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Alice's public key validation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
     // Benchmarking Bob's public key validation
     passed = true;
@@ -298,7 +297,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Bob's public key validation runs in .......................... %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Bob's public key validation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
     // Benchmarking Alice's shared key computation
     passed = true;
@@ -316,7 +315,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Alice's shared key computation runs in ....................... %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Alice's shared key computation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
     // Benchmarking Bob's shared key computation
     passed = true;
@@ -334,7 +333,7 @@ CRYPTO_STATUS cryptorun_kex(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  Bob's shared key computation runs in ......................... %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  Bob's shared key computation failed"); goto cleanup; } 
-    printf("\n");
+    //printf("\n");
 
 cleanup:
     
@@ -396,7 +395,6 @@ CRYPTO_STATUS cryptorun_BigMont(PCurveIsogenyStaticData CurveIsogenyData)
     }
     if (passed) printf("  BigMont's scalar multiplication runs in ...................... %10lld cycles", cycles/BENCH_LOOPS);
     else { printf("  BigMont's scalar multiplication failed"); goto cleanup; } 
-    printf("\n");
 
 cleanup:
     SIDH_curve_free(CurveIsogeny);
@@ -530,8 +528,7 @@ CRYPTO_STATUS isogeny_keygen(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
         //printf("  Key generated in ................... %10lld cycles", cycles);
     } else { 
         printf("  Key generation failed"); goto cleanup; 
-    } 
-    printf("\n");
+    }
 
 
     
@@ -592,7 +589,7 @@ void *sign_thread(void *TPS) {
     unsigned char *TempPubKey;
     TempPubKey = (unsigned char*)calloc(1, 4*2*tps->pbytes);
 
-    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, NULL);
+    Status = KeyGeneration_A(tps->sig->Randoms[r], TempPubKey, *(tps->CurveIsogeny), true, signBatchA);
     if(Status != CRYPTO_SUCCESS) {
     	printf("Random point generation failed");
 		}
@@ -605,7 +602,7 @@ void *sign_thread(void *TPS) {
 
 		//NEED TO REFRESH BATCH PARAMS AND THEN PASS BATCH STRUCT TO SECAGRB
     
-		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r], 0);
+		Status = SecretAgreement_B(tps->PrivateKey, TempPubKey, tps->sig->Commitments2[r], *(tps->CurveIsogeny), NULL, tps->sig->psiS[r], signBatchB);
     if(Status != CRYPTO_SUCCESS) {
 			printf("Random point generation failed"); 
     }
@@ -797,7 +794,7 @@ void *verify_thread(void *TPV) {
 	
 			//printf("%s:%d A threads synced up\n", __FILE__, __LINE__);
 
-			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, NULL);
+			Status = KeyGeneration_A(tpv->sig->Randoms[r], TempPubKey, *(tpv->CurveIsogeny), false, verifyBatchA);
 			
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E -> E/<R> failed");
@@ -817,7 +814,7 @@ void *verify_thread(void *TPV) {
 			unsigned char *TempSharSec;
 			TempSharSec = (unsigned char*)calloc(1, 2*tpv->pbytes);
 
-			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, NULL);
+			Status = SecretAgreement_A(tpv->sig->Randoms[r], tpv->PublicKey, TempSharSec, *(tpv->CurveIsogeny), NULL, verifyBatchB);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<S> -> E/<R,S> failed");
 			} else {
@@ -869,7 +866,7 @@ void *verify_thread(void *TPV) {
 			
 			//printf("%s:%d B threads synced up\n", __FILE__, __LINE__);
 
-			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, NULL);
+			Status = SecretAgreement_B(NULL, TempPubKey, TempSharSec, *(tpv->CurveIsogeny), tpv->sig->psiS[r], NULL, verifyBatchC);
 			if(Status != CRYPTO_SUCCESS) {
 				printf("Computing E/<R> -> E/<R,S> failed");
 			}
@@ -959,8 +956,8 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
 		sem_init(&verifyBatchC->sign_sem, 0, 0);
 
     int t;
-		printf("%s %d: creating verify threads\n", __FILE__, __LINE__);
-		fflush(stdout);
+		//printf("%s %d: creating verify threads\n", __FILE__, __LINE__);
+		//fflush(stdout);
     for (t=0; t<NUM_THREADS; t++) {
     	if (pthread_create(&verify_threads[t], NULL, verify_thread, &tpv)) {
     		printf("ERROR: Failed to create thread %d\n", t);
@@ -968,6 +965,7 @@ CRYPTO_STATUS isogeny_verify(PCurveIsogenyStaticData CurveIsogenyData, unsigned 
     }
 
     for (t=0; t<NUM_THREADS; t++) {
+    	printf("Thread is joining");
     	pthread_join(verify_threads[t], NULL);
   	}
 
@@ -991,9 +989,7 @@ cleanup:
 // Optional parameters: #threads, #rounds
 int main(int argc, char *argv[]) {
 	NUM_THREADS = 248;
-	printf("NUM_THREADS: %d\n", NUM_THREADS);
-
-	printf("\n");
+	//printf("NUM_THREADS: %d\n", NUM_THREADS);
 
 	CRYPTO_STATUS Status = CRYPTO_SUCCESS;
 
@@ -1024,8 +1020,19 @@ int main(int argc, char *argv[]) {
 	}
 */
 
+	unsigned int pbytes = (CurveIsogeny_SIDHp751.pwordbits + 7)/8;      // Number of bytes in a field element 
+	unsigned int n, obytes = (CurveIsogeny_SIDHp751.owordbits + 7)/8;   // Number of bytes in an element in [1, order]
+	unsigned long long cycles1, cycles2, kgcycles, scycles, vcycles;
 
-/*
+	// Allocate space for keys
+	unsigned char *PrivateKey, *PublicKey;
+	PrivateKey = (unsigned char*)calloc(1, obytes);        // One element in [1, order]  
+	PublicKey = (unsigned char*)calloc(1, 4*2*pbytes);     // Four elements in GF(p^2)
+
+	struct Signature sig;
+
+	//VALIDITY TESTING
+	/*
 	int rep;
 	for (rep=0; rep<10; rep++) {
 
@@ -1042,18 +1049,6 @@ int main(int argc, char *argv[]) {
 		}
 
 		printf("\n\nBENCHMARKING SIGNATURE run %d:\n", rep+1);
-
-
-		unsigned int pbytes = (CurveIsogeny_SIDHp751.pwordbits + 7)/8;      // Number of bytes in a field element 
-		unsigned int n, obytes = (CurveIsogeny_SIDHp751.owordbits + 7)/8;   // Number of bytes in an element in [1, order]
-		unsigned long long cycles1, cycles2, kgcycles, scycles, vcycles;
-
-		// Allocate space for keys
-		unsigned char *PrivateKey, *PublicKey;
-		PrivateKey = (unsigned char*)calloc(1, obytes);        // One element in [1, order]  
-		PublicKey = (unsigned char*)calloc(1, 4*2*pbytes);     // Four elements in GF(p^2)
-
-		struct Signature sig;
 		
 		printf("%s %d: isogeny keygen underway\n", __FILE__, __LINE__);
 
@@ -1095,7 +1090,7 @@ int main(int argc, char *argv[]) {
 		clear_words((void*)PrivateKey, NBYTES_TO_NWORDS(obytes));
 		clear_words((void*)PublicKey, NBYTES_TO_NWORDS(4*2*pbytes));
 
-/*
+
 		Status = cryptotest_BigMont(&CurveIsogeny_SIDHp751);   // Test elliptic curve "BigMont"
 		if (Status != CRYPTO_SUCCESS) {
 			printf("\n\n   Error detected: %s \n\n", SIDH_get_error_message(Status));
@@ -1110,31 +1105,56 @@ int main(int argc, char *argv[]) {
 
 	}*/
 	
+	//BENCHMARKING
+	
 	int rep;
-	for (rep=0; rep<10; rep++) {
+	/*
+	for (rep=0; rep<100; rep++) {
 		//benchmark low-level inversion
 	}
 	
-	int rep;
-	for (rep=0; rep<10; rep++) {
+	for (rep=0; rep<100; rep++) {
 		//benchmark batched partial inversion
+	}*/
+	
+	//printf("\n\nKEYGEN BENCHMARK\n\n");
+	/*
+	for (rep=0; rep<100; rep++) {
+		cycles1 = cpucycles();
+		Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
+		cycles2 = cpucycles();
+		kgcycles = cycles2 - cycles1;
+		
+		//printf("%10lld\n", kgcycles);
+	}*/
+	
+	//printf("\n\nSIGN BENCHMARK\n\n");
+	
+	//for (rep=0; rep<100; rep++) {
+		//Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
+		
+		//cycles1 = cpucycles();
+		//Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
+		//cycles2 = cpucycles();
+		//scycles = cycles2 - cycles1;
+		
+		//printf("%10lld\n", scycles);
+	//}
+	
+	//printf("\n\nVERIF BENCHMARK\n\n");
+
+	for (rep=0; rep<100; rep++) {
+		Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
+		Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
+		
+		cycles1 = cpucycles();
+		Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
+		cycles2 = cpucycles();
+		vcycles = cycles2 - cycles1;
+		
+		printf("%10lld\n", vcycles);
 	}
 	
-	int rep;
-	for (rep=0; rep<10; rep++) {
-		//bechmark keygen
-	}
-	
-	int rep;
-	for (rep=0; rep<10; rep++) {
-		//benchmark sign
-	}
-
-	int rep;
-	for (rep=0; rep<10; rep++) {
-		//benchmark verify
-	}
-
 	return true;
 }
 

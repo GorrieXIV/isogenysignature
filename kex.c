@@ -22,112 +22,113 @@ CRYPTO_STATUS KeyGeneration_A(unsigned char* pPrivateKeyA, unsigned char* pPubli
   // The private key is an even integer in the range [2, oA-2], where oA = 2^372 (i.e., 372 bits in total). 
   // The public key consists of 4 elements in GF(p751^2), i.e., 751 bytes in total.
   // CurveIsogeny must be set up in advance using SIDH_curve_initialize().
-    unsigned int owords = NBITS_TO_NWORDS(CurveIsogeny->owordbits), pwords = NBITS_TO_NWORDS(CurveIsogeny->pwordbits);
-    point_basefield_t P;
-    point_proj_t R, phiP = {0}, phiQ = {0}, phiD = {0}, pts[MAX_INT_POINTS_ALICE];
-    publickey_t* PublicKeyA = (publickey_t*)pPublicKeyA;
-    unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0; 
-    f2elm_t coeff[5], A = {0}, C = {0}, Aout, Cout;
-    CRYPTO_STATUS Status = CRYPTO_ERROR_UNKNOWN; 
+	unsigned int owords = NBITS_TO_NWORDS(CurveIsogeny->owordbits), pwords = NBITS_TO_NWORDS(CurveIsogeny->pwordbits);
+	point_basefield_t P;
+	point_proj_t R, phiP = {0}, phiQ = {0}, phiD = {0}, pts[MAX_INT_POINTS_ALICE];
+  publickey_t* PublicKeyA = (publickey_t*)pPublicKeyA;
+	unsigned int i, row, m, index = 0, pts_index[MAX_INT_POINTS_ALICE], npts = 0; 
+	f2elm_t coeff[5], A = {0}, C = {0}, Aout, Cout;
+	CRYPTO_STATUS Status = CRYPTO_ERROR_UNKNOWN; 
 
-    if (pPrivateKeyA == NULL || pPublicKeyA == NULL || is_CurveIsogenyStruct_null(CurveIsogeny)) {
-        return CRYPTO_ERROR_INVALID_PARAMETER;
-    }  
+	if (pPrivateKeyA == NULL || pPublicKeyA == NULL || is_CurveIsogenyStruct_null(CurveIsogeny)) {
+		return CRYPTO_ERROR_INVALID_PARAMETER;
+	}  
 
-//modified
-    // Choose a random even number in the range [2, oA-2] as secret key for Alice
-    if (GenerateRandom) {
-        Status = random_mod_order((digit_t*)pPrivateKeyA, ALICE, CurveIsogeny);    
-        if (Status != CRYPTO_SUCCESS) {
-            clear_words((void*)pPrivateKeyA, owords);
-            return Status;
-        }
-    }
-
-    to_mont((digit_t*)CurveIsogeny->PA, (digit_t*)P);                               // Conversion of Alice's generators to Montgomery representation
-    to_mont(((digit_t*)CurveIsogeny->PA)+NWORDS_FIELD, ((digit_t*)P)+NWORDS_FIELD); 
-
-    Status = secret_pt(P, (digit_t*)pPrivateKeyA, ALICE, R, CurveIsogeny);
-    if (Status != CRYPTO_SUCCESS) {
-        clear_words((void*)pPrivateKeyA, owords);
-        return Status;
-    }
-
-    copy_words((digit_t*)CurveIsogeny->PB, (digit_t*)phiP, pwords);                 // Copy X-coordinates from Bob's public parameters, set Z <- 1
-    fpcopy751((digit_t*)CurveIsogeny->Montgomery_one, (digit_t*)phiP->Z);  
-    to_mont((digit_t*)phiP, (digit_t*)phiP);                                        
-    copy_words((digit_t*)phiP, (digit_t*)phiQ, pwords);                             // QB = (-XPB:1)
-    fpneg751(phiQ->X[0]);   
-    fpcopy751((digit_t*)CurveIsogeny->Montgomery_one, (digit_t*)phiQ->Z); 
-    distort_and_diff(phiP->X[0], phiD, CurveIsogeny);                               // DB = (x(QB-PB),z(QB-PB))
-
-    fpcopy751(CurveIsogeny->A, A[0]);                                               // Extracting curve parameters A and C
-    fpcopy751(CurveIsogeny->C, C[0]);
-    to_mont(A[0], A[0]);
-    to_mont(C[0], C[0]);
-
-    first_4_isog(phiP, A, Aout, Cout, CurveIsogeny);     
-    first_4_isog(phiQ, A, Aout, Cout, CurveIsogeny);
-    first_4_isog(phiD, A, Aout, Cout, CurveIsogeny);
-    first_4_isog(R, A, A, C, CurveIsogeny);
-    
-    index = 0;        
-    for (row = 1; row < MAX_Alice; row++) {
-        while (index < MAX_Alice-row) {
-            fp2copy751(R->X, pts[npts]->X);
-            fp2copy751(R->Z, pts[npts]->Z);
-            pts_index[npts] = index;
-            npts += 1;
-            m = splits_Alice[MAX_Alice-index-row];
-            xDBLe(R, R, A, C, (int)(2*m));
-            index += m;
-        }
-        get_4_isog(R, A, C, coeff);        
-
-        for (i = 0; i < npts; i++) {
-            eval_4_isog(pts[i], coeff);
-        }
-        eval_4_isog(phiP, coeff);
-        eval_4_isog(phiQ, coeff);
-        eval_4_isog(phiD, coeff);
-
-        fp2copy751(pts[npts-1]->X, R->X); 
-        fp2copy751(pts[npts-1]->Z, R->Z);
-        index = pts_index[npts-1];
-        npts -= 1;
-    }
-
-    get_4_isog(R, A, C, coeff); 
-    eval_4_isog(phiP, coeff);
-    eval_4_isog(phiQ, coeff);
-    eval_4_isog(phiD, coeff);
-
-		if(batch != NULL) {
-			inv_4_way_batch(C, phiP->Z, phiQ->Z, phiD->Z, batch);
-		} else {
-			inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
+	//modified
+	// Choose a random even number in the range [2, oA-2] as secret key for Alice
+	if (GenerateRandom) {
+		Status = random_mod_order((digit_t*)pPrivateKeyA, ALICE, CurveIsogeny);    
+		if (Status != CRYPTO_SUCCESS) {
+			clear_words((void*)pPrivateKeyA, owords);
+			return Status;
 		}
-    fp2mul751_mont(A, C, A);
-    fp2mul751_mont(phiP->X, phiP->Z, phiP->X);
-    fp2mul751_mont(phiQ->X, phiQ->Z, phiQ->X);
-    fp2mul751_mont(phiD->X, phiD->Z, phiD->X);
+	}
 
-    from_fp2mont(A, ((f2elm_t*)PublicKeyA)[0]);                                     // Converting back to standard representation
-    from_fp2mont(phiP->X, ((f2elm_t*)PublicKeyA)[1]);
-    from_fp2mont(phiQ->X, ((f2elm_t*)PublicKeyA)[2]);
-    from_fp2mont(phiD->X, ((f2elm_t*)PublicKeyA)[3]);
+	to_mont((digit_t*)CurveIsogeny->PA, (digit_t*)P);		// Conversion of Alice's generators to Montgomery representation
+	to_mont(((digit_t*)CurveIsogeny->PA)+NWORDS_FIELD, ((digit_t*)P)+NWORDS_FIELD); 
+
+	Status = secret_pt(P, (digit_t*)pPrivateKeyA, ALICE, R, CurveIsogeny);
+	if (Status != CRYPTO_SUCCESS) {
+		clear_words((void*)pPrivateKeyA, owords);
+		return Status;
+	}
+
+	copy_words((digit_t*)CurveIsogeny->PB, (digit_t*)phiP, pwords);		// Copy X-coordinates from Bob's public parameters, set Z <- 1
+	fpcopy751((digit_t*)CurveIsogeny->Montgomery_one, (digit_t*)phiP->Z);  
+	to_mont((digit_t*)phiP, (digit_t*)phiP);                                        
+	copy_words((digit_t*)phiP, (digit_t*)phiQ, pwords);                             // QB = (-XPB:1)
+	fpneg751(phiQ->X[0]);   
+	fpcopy751((digit_t*)CurveIsogeny->Montgomery_one, (digit_t*)phiQ->Z); 
+	distort_and_diff(phiP->X[0], phiD, CurveIsogeny);                               // DB = (x(QB-PB),z(QB-PB))
+
+	fpcopy751(CurveIsogeny->A, A[0]);                                               // Extracting curve parameters A and C
+	fpcopy751(CurveIsogeny->C, C[0]);
+	to_mont(A[0], A[0]);
+	to_mont(C[0], C[0]);
+
+	first_4_isog(phiP, A, Aout, Cout, CurveIsogeny);     
+	first_4_isog(phiQ, A, Aout, Cout, CurveIsogeny);
+	first_4_isog(phiD, A, Aout, Cout, CurveIsogeny);
+	first_4_isog(R, A, A, C, CurveIsogeny);
+    
+	index = 0;        
+	for (row = 1; row < MAX_Alice; row++) {
+		while (index < MAX_Alice-row) {
+			fp2copy751(R->X, pts[npts]->X);
+			fp2copy751(R->Z, pts[npts]->Z);
+			pts_index[npts] = index;
+			npts += 1;
+			m = splits_Alice[MAX_Alice-index-row];
+			xDBLe(R, R, A, C, (int)(2*m));
+			index += m;
+		}
+		get_4_isog(R, A, C, coeff);        
+
+		for (i = 0; i < npts; i++) {
+			eval_4_isog(pts[i], coeff);
+		}
+		eval_4_isog(phiP, coeff);
+		eval_4_isog(phiQ, coeff);
+		eval_4_isog(phiD, coeff);
+
+		fp2copy751(pts[npts-1]->X, R->X); 
+		fp2copy751(pts[npts-1]->Z, R->Z);
+		index = pts_index[npts-1];
+		npts -= 1;
+	}
+
+	get_4_isog(R, A, C, coeff); 
+	eval_4_isog(phiP, coeff);
+	eval_4_isog(phiQ, coeff);
+	eval_4_isog(phiD, coeff);
+
+	if(batch != NULL) {
+		inv_4_way_batch(C, phiP->Z, phiQ->Z, phiD->Z, batch);
+	} else {
+		inv_4_way(C, phiP->Z, phiQ->Z, phiD->Z);
+	}
+	
+	fp2mul751_mont(A, C, A);
+	fp2mul751_mont(phiP->X, phiP->Z, phiP->X);
+	fp2mul751_mont(phiQ->X, phiQ->Z, phiQ->X);
+  fp2mul751_mont(phiD->X, phiD->Z, phiD->X);
+
+	from_fp2mont(A, ((f2elm_t*)PublicKeyA)[0]);		// Converting back to standard representation
+	from_fp2mont(phiP->X, ((f2elm_t*)PublicKeyA)[1]);
+	from_fp2mont(phiQ->X, ((f2elm_t*)PublicKeyA)[2]);
+	from_fp2mont(phiD->X, ((f2elm_t*)PublicKeyA)[3]);
 
 // Cleanup:
-    clear_words((void*)R, 2*2*pwords);
-    clear_words((void*)phiP, 2*2*pwords);
-    clear_words((void*)phiQ, 2*2*pwords);
-    clear_words((void*)phiD, 2*2*pwords);
-    clear_words((void*)pts, MAX_INT_POINTS_ALICE*2*2*pwords);
-    clear_words((void*)A, 2*pwords);
-    clear_words((void*)C, 2*pwords);
-    clear_words((void*)coeff, 5*2*pwords);
+	clear_words((void*)R, 2*2*pwords);
+	clear_words((void*)phiP, 2*2*pwords);
+	clear_words((void*)phiQ, 2*2*pwords);
+	clear_words((void*)phiD, 2*2*pwords);
+	clear_words((void*)pts, MAX_INT_POINTS_ALICE*2*2*pwords);
+	clear_words((void*)A, 2*pwords);
+	clear_words((void*)C, 2*pwords);
+	clear_words((void*)coeff, 5*2*pwords);
       
-    return Status;
+	return Status;
 }
 
 
