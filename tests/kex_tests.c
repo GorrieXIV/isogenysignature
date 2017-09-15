@@ -1107,15 +1107,33 @@ int main(int argc, char *argv[]) {
 	
 	//BENCHMARKING
 	
-	int rep;
+	int rep, q;
+	f2elm_t* elem = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
+	f2elm_t* dest = (f2elm_t*) malloc (248 * sizeof(f2elm_t));
 	/*
 	for (rep=0; rep<100; rep++) {
-		//benchmark low-level inversion
-	}
+		fp2rand(elem);
+		cycles1 = cpucycles();
+		fp2inv751_mont(elem);
+		cycles2 = cpucycles();
+		vcycles = cycles2 - cycles1;
+		
+		printf("%10lld\n", vcycles);
+	}*/
 	
 	for (rep=0; rep<100; rep++) {
-		//benchmark batched partial inversion
-	}*/
+		for (q=0; q<248; q++) {
+			fp2rand(elem[q]);
+		}
+	
+		cycles1 = cpucycles();
+		partial_batched_inv (elem, dest, 248);
+		//fp2inv751_mont(elem[0]);
+		cycles2 = cpucycles();
+		vcycles = cycles2 - cycles1;
+		
+		printf("%10lld\n", vcycles);
+	}
 	
 	//printf("\n\nKEYGEN BENCHMARK\n\n");
 	/*
@@ -1143,17 +1161,17 @@ int main(int argc, char *argv[]) {
 	
 	//printf("\n\nVERIF BENCHMARK\n\n");
 
-	for (rep=0; rep<100; rep++) {
-		Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
-		Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
+	//for (rep=0; rep<100; rep++) {
+		//Status = isogeny_keygen(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey);
+		//Status = isogeny_sign(&CurveIsogeny_SIDHp751, PrivateKey, PublicKey, &sig);
 		
-		cycles1 = cpucycles();
-		Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
-		cycles2 = cpucycles();
-		vcycles = cycles2 - cycles1;
+		//cycles1 = cpucycles();
+		//Status = isogeny_verify(&CurveIsogeny_SIDHp751, PublicKey, &sig);
+		//cycles2 = cpucycles();
+		//vcycles = cycles2 - cycles1;
 		
-		printf("%10lld\n", vcycles);
-	}
+		//printf("%10lld\n", vcycles);
+	//}
 	
 	return true;
 }

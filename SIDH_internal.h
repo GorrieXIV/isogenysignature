@@ -263,6 +263,9 @@ void fpcopy751(felm_t a, felm_t c);
 // Zeroing a field element, a = 0
 void fpzero751(felm_t a);
 
+// Generates a random field element (NOT SECURE)
+void fprand(felm_t a);
+
 // Modular addition, c = a+b mod p751
 extern void fpadd751(digit_t* a, digit_t* b, digit_t* c);
 extern void fpadd751_asm(digit_t* a, digit_t* b, digit_t* c);
@@ -310,6 +313,9 @@ void fp2zero751(f2elm_t a);
 
 // GF(p751^2) negation, a = -a in GF(p751^2)
 void fp2neg751(f2elm_t a);
+
+// Generates a random fp2 element (NOT SECURE)
+void fp2rand(f2elm_t a);
 
 // GF(p751^2) addition, c = a+b in GF(p751^2)
 extern void fp2add751(f2elm_t a, f2elm_t b, f2elm_t c);           

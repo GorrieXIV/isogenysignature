@@ -10,6 +10,7 @@
 *********************************************************************************************/ 
 
 #include "SIDH_internal.h"
+#include "tests/test_extras.h"
     
 
 // Global constants          
@@ -41,6 +42,10 @@ __inline void fpzero751(felm_t a)
         a[i] = 0;
 }
 
+void fprand(felm_t a) {
+//generates a NON-CRYPTOGRAPHICALLY SECURE random fp element
+	random_bytes_test(sizeof(a), a);
+}
 
 void to_mont(felm_t a, felm_t mc)
 { // Conversion to Montgomery representation
@@ -388,6 +393,12 @@ void fp2neg751(f2elm_t a)
 {// GF(p751^2) negation, a = -a in GF(p751^2)
     fpneg751(a[0]);
     fpneg751(a[1]);
+}
+
+void fp2rand(f2elm_t a) {
+//generates a NON-CRYPTOGRAPHICALLY SECURE random fp2 element
+	fprand(a[0]);
+	fprand(a[1]);
 }
 
 

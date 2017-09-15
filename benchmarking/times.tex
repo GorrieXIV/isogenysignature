@@ -1,0 +1,74 @@
+\documentclass[10pt]{article}
+
+% Packages
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{enumerate}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{arydshln}
+\usepackage{xcolor}
+
+\newcommand\VRule[1][\arrayrulewidth]{\vrule width #1}
+
+% === Begin Document === %
+\begin{document}
+
+\begin{center}
+\large {\sffamily {\textbf{Batched Inversion Results on SIDH Signatures (Yoo et. al)}}}\\
+\normalsize {Robert Gorrie -- McMaster University -- \today}\\
+\end{center}
+\hline
+\pagenumbering{arabic}
+
+
+% === Content === %
+\section{Batched Partial-Inversion Procedure}
+
+describe how the procedure works\\
+describe where the procedure can be used in SIDH/signatures\\
+
+\section{Performance}
+
+\subsection{Numbers}
+
+All results are measured in clock cycles, executed on a single-core, 1.70 GHz Intel Celeron CPU. All benchmarks are averages computed from 100 randomized sample runs.
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+	\toprule
+	Procedure & Perf. Without Batching & Perf With Batching \\
+	\midrule
+	KeyGen & 68881331 & 68881331\\
+	Signature Sign & 15744477032 & 15565738003\\
+	Signature Verify & 11183112648 & 10800158871\\
+	\bottomrule
+\end{tabular}
+\end{center}
+
+In the following table, "Batched Inversion" signifies running the batched partial-inversion procedure on 248 $\mathbb{F}_{p^{2}}$ elements. The procedure uses the binary GCD $\mathbb{F}_{p}$ inversion function which, unlike regular $\mathbb{F}_{p^{2}}$ montgomery inversion, is not constant time.\\
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+	\toprule
+	Procedure & Performance \\
+	\midrule
+	Batched Inversion & 1721718\\
+	$\mathbb{F}_{p^{2}}$ Montgomery Inversion & 874178\\
+	\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Analysis}
+
+check notes in "averages" file\\
+
+
+
+\end{document}
+%\includegraphics[width=\linewidth]{IMG_20160124_143724.jpg}
+

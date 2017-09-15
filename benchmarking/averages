@@ -4,3 +4,10 @@ sign (without batch): 	15744477032
 sign (with batch): 		15565738003
 verify (without batch):	11183112648
 verify (with batch): 	10800158871
+
+Notes:
+512 fp2 inversion are performed in signing, and ~372 in verifying.
+fp2 inversion time * 512 = 44757504
+batched inversion time * 2 = 3443436
+difference = 41314068
+sig sign difference = 178739029
