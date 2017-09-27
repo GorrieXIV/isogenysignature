@@ -41,14 +41,20 @@ All results are measured in clock cycles, executed on a single-core, 1.70 GHz In
 \begin{center}
 \begin{tabular}{@{}lll@{}}
 	\toprule
-	Procedure & Perf. Without Batching & Perf With Batching \\
+	Procedure & Perf. Without Batching & Perf. With Batching \\
 	\midrule
-	KeyGen & 68881331 & 68881331\\
-	Signature Sign & 15744477032 & 15565738003\\
-	Signature Verify & 11183112648 & 10800158871\\
+	KeyGen & 68,881,331 & 68,881,331\\
+	Signature Sign & 15,744,477,032 & 15,565,738,003\\
+	Signature Verify & 11,183,112,648 & 10,800,158,871\\
 	\bottomrule
 \end{tabular}
 \end{center}
+
+With inversion batching turned on we notice a ~1.1 \% performance increase for key signing and a ~3.5 \% performance increase for key verification.
+
+
+
+\subsection{Analysis}
 
 In the following table, "Batched Inversion" signifies running the batched partial-inversion procedure on 248 $\mathbb{F}_{p^{2}}$ elements. The procedure uses the binary GCD $\mathbb{F}_{p}$ inversion function which, unlike regular $\mathbb{F}_{p^{2}}$ montgomery inversion, is not constant time.\\
 
@@ -62,8 +68,6 @@ In the following table, "Batched Inversion" signifies running the batched partia
 	\bottomrule
 \end{tabular}
 \end{center}
-
-\subsection{Analysis}
 
 check notes in "averages" file\\
 
